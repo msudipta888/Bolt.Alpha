@@ -1,13 +1,13 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { config } from "dotenv";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 config();
 
 const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY3 as string;
 const genAI = new GoogleGenerativeAI(apiKey);
 const codeHistory = new Map();
 
-export async function POST(req: any) {
+export async function POST(req: NextRequest) {
   const { prompt, sessionId } = await req.json();
   console.log('session:',sessionId);
   try {
@@ -50,8 +50,7 @@ let newSession;
     const responseCode = aiResponse.response.text();
     
     return NextResponse.json({ result: JSON.parse(responseCode) });
-  } catch (error:any) {
-    console.error("Error with Gemini API:", error);
-    return NextResponse.json({ error: error.message || "An error occurred" }, { status: 500 });
+  } catch (error) {
+    return NextResponse.json({ error: error || "An error occurred" }, { status: 500 });
   }
 }

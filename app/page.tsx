@@ -9,12 +9,7 @@ export default function Home() {
   const [mes, setMes] = useState<Message[]>([]);
   const [action, setAction] = useState("null");
   const [active, setActive] = useState("code");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
-
+  
   return (
     <div className="h-[100vh] w-[100vw] text-white">
       <div className="containe h-[100vh] mx-auto px-5 -pt-3 ">

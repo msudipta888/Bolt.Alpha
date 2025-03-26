@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import {  NextResponse } from 'next/server';
 import { config } from 'dotenv';
 config();
 import fs from 'fs';
@@ -204,11 +204,9 @@ async function runBuild(workingDir: string): Promise<string> {
     
     updateProgress('active', 'build_process', 'Build completed successfully');
     return stdout;
-  } catch (error: any) {
-    updateProgress('error', 'build_process', `Build error: ${error.message}`);
-    if (error.stdout) console.error(`Build stdout: ${error.stdout}`);
-    if (error.stderr) console.error(`Build stderr: ${error.stderr}`);
-    throw new Error(`Build process failed: ${error.message}`);
+  } catch (error) {
+    updateProgress('error', 'build_process', `Build error: ${error}`);
+    throw new Error(`Build process failed: ${error}`);
   }
 }
 
@@ -283,9 +281,9 @@ async function createNetlifySite(): Promise<{ id: string, name: string, url: str
       name: response.data.name,
       url: response.data.ssl_url || response.data.url
     };
-  } catch (error: any) {
-    updateProgress('error', 'site_creation', `Failed to create Netlify site: ${error.response?.data?.message || error.message}`);
-    throw new Error(`Failed to create Netlify site: ${error.response?.data?.message || error.message}`);
+  } catch (error) {
+    updateProgress('error', 'site_creation', `Failed to create Netlify site: ${error}`);
+    throw new Error(`Failed to create Netlify site: ${error}`);
   }
 }
 
@@ -326,9 +324,9 @@ async function deployZipToNetlify(siteId: string, zipPath: string): Promise<any>
       
     updateProgress('success', 'deployment', `Deployed to Netlify: ${response.data.deploy_url}`);
     return response.data;
-  } catch (error: any) {
-    updateProgress('error', 'deployment', `Failed to deploy to Netlify: ${error.response?.data?.message || error.message}`);
-    throw new Error(`Failed to deploy to Netlify: ${error.response?.data?.message || error.message}`);
+  } catch (error) {
+    updateProgress('error', 'deployment', `Failed to deploy to Netlify: ${error}`);
+    throw new Error(`Failed to deploy to Netlify: ${error}`);
   }
 }
 
@@ -379,7 +377,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     await writeFilesToDisk(fileObjects, tempSrcDir);
     
     // Build the project
-    const buildOutput = await runBuild(tempSrcDir);
+    await runBuild(tempSrcDir);
     
     // Check if build directory exists and contains index.html
     if (!fs.existsSync(path.join(buildDir, 'index.html'))) {
@@ -407,7 +405,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       status: 'success'
     });
     
-  } catch (error: any) {
+  } catch (error) {
     console.error('Deployment failed:', error);
     
     // Attempt cleanup even if deployment failed
@@ -418,13 +416,13 @@ export async function POST(req: Request): Promise<NextResponse> {
     }
     
     // Determine error stage
-    let stage = buildProgress.stage || 'unknown';
+    const stage = buildProgress.stage || 'unknown';
     
     // Return structured error response
     return NextResponse.json({
-      error: error.message || 'Unknown deployment failure',
+      error: error || 'Unknown deployment failure',
       stage,
-      details: error.stack
+      details: error
     }, { status: 500 });
   }
 }

@@ -1,13 +1,13 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { config } from "dotenv";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 config();
 const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY2 as string
 const genAI = new GoogleGenerativeAI(apiKey);
 
 const chatHistory = new Map()
 
-export async function POST(req:any) {
+export async function POST(req:NextRequest) {
   const { prompt,sessionId } = await req.json();
   console.log('session:',sessionId); 
 console.log(prompt)

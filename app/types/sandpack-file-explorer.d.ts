@@ -22,8 +22,8 @@ declare module 'sandpack-file-explorer' {
     onFileMoved: ({ node, newTree }: { newTree: Item[]; node: DropOptions<{ path: string }> }) => Promise<void>;
     openDirs: string[];
     setOpenDirs: React.Dispatch<React.SetStateAction<string[]>>;
-    setTreeData: React.Dispatch<React.SetStateAction<any[]>>;
-    treeData: any[];
+    setTreeData: React.Dispatch<React.SetStateAction<[]>>;
+    treeData: [];
   };
 
   declare const SandpackFilesProvider: FC<PropsWithChildren & { onMoveFile?: (fileMap: Record<string, string>) => void }>;

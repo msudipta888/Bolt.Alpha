@@ -8,7 +8,6 @@ import {
   SandpackProvider,
   SandpackLayout,
   SandpackCodeEditor,
-  SandpackPreview,
 } from "@codesandbox/sandpack-react";
 import { SandpackFileExplorer } from "sandpack-file-explorer";
 import { MessageContext, MessageContextType } from "../context/MessageContext";
