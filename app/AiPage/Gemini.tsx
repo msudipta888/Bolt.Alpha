@@ -149,7 +149,7 @@ const Gemini = () => {
 await webContainer?.spawn('npm', ['run', 'dev']);
 webContainer?.on('server-ready', (port, url) => {
   // Assuming you have an iframe element with the id "preview"
-  let previewIframe = document.getElementById('preview');
+  const previewIframe = document.getElementById('preview');
   if (previewIframe instanceof HTMLIFrameElement) {
     previewIframe.src = url;
   }

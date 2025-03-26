@@ -286,9 +286,13 @@ async function createNetlifySite(): Promise<{ id: string, name: string, url: str
     throw new Error(`Failed to create Netlify site: ${error}`);
   }
 }
-
+interface NetlifyDeployResponse {
+  id: string;
+  deploy_url: string;
+  site_id: string;
+}
 // Deploy ZIP to Netlify with improved error handling and progress tracking
-async function deployZipToNetlify(siteId: string, zipPath: string): Promise<any> {
+async function deployZipToNetlify(siteId: string, zipPath: string): Promise<NetlifyDeployResponse> {
   const deployUrl = `https://api.netlify.com/api/v1/sites/${siteId}/deploys`;
   const token = process.env.DEPLOY_ACCESS_TOKEN;
   
