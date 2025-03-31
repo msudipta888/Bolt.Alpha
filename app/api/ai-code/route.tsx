@@ -3,7 +3,7 @@ import { config } from "dotenv";
 import { NextRequest, NextResponse } from "next/server";
 config();
 
-const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY3 as string;
+const apiKey = process.env.GEMINI_API_KEY as string;
 const genAI = new GoogleGenerativeAI(apiKey);
 const codeHistory = new Map();
 
