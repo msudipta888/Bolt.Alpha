@@ -17,7 +17,7 @@ export const Files = {
   </html>`,
         },
       },
-    },
+    }, 
   },
    src:{
     directory:{

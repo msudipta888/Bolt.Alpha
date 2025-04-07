@@ -15,7 +15,7 @@ const DeployAndDownload = ({ files,setDeployStatus, deployStatus}) => {
       
 
       const response = await axios.post("/api/deploy", {
-        files,
+        files, 
       });
 
       const { url, stage, message, status } = response.data;

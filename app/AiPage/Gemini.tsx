@@ -732,7 +732,7 @@ const iframe = useRef<HTMLIFrameElement>(null)
               options={{
                 externalResources: ["https://cdn.tailwindcss.com"],
               }}
-            >
+            > 
               <SandpackLayout className="!h-full">
                 {active === "code" ? (
                   <div className="flex h-full w-full">
