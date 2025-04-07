@@ -1,9 +1,8 @@
 "use client";
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CODE_GEN_PROMPT, CHAT_PROMPT } from "./prompt";
 import axios from "axios";
-import Lookup from "./Lookup";
 import {
   SandpackProvider,
   SandpackLayout,
@@ -16,11 +15,16 @@ import { v4 as uuidv4 } from "uuid";
 import DeployAndDownload from "./DeployAndDownload";
 import { Active, ActiveContext } from "../context/ActiveContext";
 import { Typewriter } from "react-simple-typewriter";
-import { useWebcontainer } from "./Webcontainer";
 import { Files } from "./File";
+import { ImageContext } from "../context/imageContext";
+
+import { Sidebar } from "./Sidebar";
+//import WebContainerPreview from "./Webcontainer";
+import { WebContainer } from "@webcontainer/api";
+import { useClerk, UserButton } from "@clerk/nextjs";
 
 const Gemini = () => {
-  const [files, setFiles] = useState(Lookup.DEFAULT_FILE);
+  const [files, setFiles] = useState(Files);
   const { mes, setMes } = useContext(MessageContext) as MessageContextType;
   const [input, setInput] = useState("");
   const [loader, setLoader] = useState(false);
@@ -32,9 +36,13 @@ const Gemini = () => {
   const [deployStage, setDeployStage] = useState("");
   const [deployMessage, setDeployMessage] = useState("");
   const [deployLink, setDeployLink] = useState("");
-
-  const webContainer = useWebcontainer();
-  
+  const { image, setImage } = useContext(ImageContext);
+  const [isSidebarVisible, setIsSidebarVisible] = useState(false);
+  const [webContainer, setWebContainer] = useState<WebContainer | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+const [flatFiles, setFlatFiles] = useState<Record<string, { code: string }> | undefined>(undefined);
+  const user = useClerk();
+const iframe = useRef<HTMLIFrameElement>(null)
   // Generate a session ID when the component mounts
   useEffect(() => {
     setSessionId(uuidv4());
@@ -72,14 +80,14 @@ const Gemini = () => {
 
       const responseText = result.data.result;
       console.log(responseText);
-     // const cleanText = responseText.replace(/[\r\n]+/gm, " ");
-     const cleanText = responseText.replace(/\n+\d+\.?\s*/g, "\n- ");
-     const replacedText = cleanText.replace(/"/g, "");
-     // Only replace escape sequences and keep essential punctuation
-     const cleanedText = replacedText.replace(/\\n/g, "\n").replace(/[^\w\s.,!?:;()-]/g, '');
-     setMes((prev) => [...prev, { role: "ai", content: [cleanedText] }]);
-
-      
+      // const cleanText = responseText.replace(/[\r\n]+/gm, " ");
+      const cleanText = responseText.replace(/\n+\d+\.?\s*/g, "\n- ");
+      const replacedText = cleanText.replace(/"/g, "");
+      // Only replace escape sequences and keep essential punctuation
+      const cleanedText = replacedText
+        .replace(/\\n/g, "\n")
+        .replace(/[^\w\s.,!?:;()-]/g, "");
+      setMes((prev) => [...prev, { role: "ai", content: [cleanedText] }]);
     } catch (error) {
       console.error("Error communicating with Gemini:", error);
       setMes((prev) => [
@@ -93,7 +101,20 @@ const Gemini = () => {
       setLoader(false);
     }
   };
-
+  useEffect(() => {
+    if (user) {
+      setImage({
+        url: user.user?.imageUrl || "",
+        alt: user.user?.fullName || "",
+      });
+     const userdetail = async()=>{
+      await axios.post("/api/user",{
+        user
+      })
+     }
+     userdetail();
+    }
+  }, []);
   const generateCode = async () => {
     setLoader(true);
     try {
@@ -110,7 +131,7 @@ const Gemini = () => {
       });
 
       const code = response.data.result;
-      const mergedFiles = { ...Lookup.DEFAULT_FILE, ...code?.files };
+      const mergedFiles = { ...Files, ...code?.files };
       setFiles(mergedFiles);
     } catch (error) {
       console.error("Error generating code with Gemini:", error);
@@ -143,23 +164,6 @@ const Gemini = () => {
       }
     }
   }, [mes]);
-  const main = async()=>{
-    await webContainer?.mount(Files);
-    console.log(files)
-await webContainer?.spawn('npm', ['run', 'dev']);
-webContainer?.on('server-ready', (port, url) => {
-  // Assuming you have an iframe element with the id "preview"
-  const previewIframe = document.getElementById('preview');
-  if (previewIframe instanceof HTMLIFrameElement) {
-    previewIframe.src = url;
-  }
-  console.log(`Server is running on port ${port}`);
-});
-
-  }
- useEffect(()=>{
-  main();
- },[Files])
 
   const handleNewProject = () => {
     // Generate a new session ID
@@ -170,7 +174,7 @@ webContainer?.on('server-ready', (port, url) => {
     setMes([]);
 
     // Reset to default files
-    setFiles(Lookup.DEFAULT_FILE);
+    setFiles(Files);
 
     // Clear the input
     setInput("");
@@ -178,6 +182,109 @@ webContainer?.on('server-ready', (port, url) => {
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
+  };
+  function flattenFiles(nested:any, prefix = "") {
+    const flat: Record<string, { code: string }> = {};
+  
+    for (const key in nested) {
+      const item = nested[key];
+  
+      if (item && typeof item === "object" && "file" in item) {
+        const filePath = prefix ? `${prefix}/${key}` : key;
+        flat[filePath] = { code: item.file.contents.trim() };
+      }
+      
+      else if (item && typeof item === "object" && "directory" in item) {
+        if (key === "src") {
+          Object.assign(flat, flattenFiles(item.directory, prefix));
+        } else {
+          const newPrefix = prefix ? `${prefix}/${key}` : key;
+          Object.assign(flat, flattenFiles(item.directory, newPrefix));
+        }
+      }
+     
+      else if (item && typeof item === "object") {
+        if (key === "src") {
+          Object.assign(flat, flattenFiles(item, prefix));
+        } else {
+          const newPrefix = prefix ? `${prefix}/${key}` : key;
+          Object.assign(flat, flattenFiles(item, newPrefix));
+        }
+      }
+    }
+  
+    return flat;
+  }
+  
+  
+  useEffect(() => {
+    console.log('files:',files)
+      const flatFiles = flattenFiles(files);
+      console.log(flatFiles)
+      setFlatFiles(flatFiles);
+  }, [files]);
+  useEffect(() => {
+    const updateFiles = async () => {
+    
+      if (webContainer && flatFiles) {
+        for (const [path, { code }] of Object.entries(flatFiles)) {
+          try {
+            await webContainer.fs.writeFile(path, code);
+          } catch (error) {
+            console.error(`Failed to update file ${path}:`, error);
+          }
+        }
+      }
+    };
+    updateFiles();
+  }, [flatFiles, webContainer]);
+  
+  useEffect(() => {
+    const initWebContainer = async () => {
+      try {
+        const container = await WebContainer.boot();
+        setWebContainer(container);
+        await container.mount(files);
+      } catch (error) {
+        console.error("Failed to initialize WebContainer:", error);
+      }
+    };
+
+    initWebContainer();
+  }, [files]);
+
+  useEffect(()=>{
+   if(active==="preview"){
+    runProjectInWebContainer();
+   }
+  },[active==="preview"])
+  
+  const runProjectInWebContainer = async () => {
+    if (!webContainer) return;
+
+    try {
+     
+      const installProcess = await webContainer.spawn("npm", ["install"]);
+      installProcess.output.pipeTo(
+        new WritableStream({
+          write(data) {
+            console.log(data);
+          },
+        })
+      );
+       await webContainer.spawn("npm", ["run", "dev"]);
+      
+      webContainer.on("server-ready", (port, url) => {
+        console.log(port);
+        console.log(url);
+        setPreviewUrl(url)
+       
+      });
+      
+      console.log(previewUrl)
+    } catch (error) {
+      console.error("Error running project in WebContainer:", error);
+    }
   };
 
   return (
@@ -251,223 +358,112 @@ webContainer?.on('server-ready', (port, url) => {
           } h-full flex flex-col border-r border-gray-800 bg-gray-900/30 transition-all duration-300`}
         >
           <div className="flex-grow overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-  {Array.isArray(mes) && mes.length > 0 ? (
-    mes.map((message, index) => (
-      <div
-        key={index}
-        className={`p-4 rounded-lg mb-3 shadow-sm transition-all ${
-          message.role === "user"
-            ? "bg-gray-800/70 border-l-2 border-blue-500"
-            : "bg-gray-900/70 border-l-2 border-purple-500"
-        }`}
-      >
-        <div className="flex items-center mb-2">
-          <div
-            className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${
-              message.role === "user"
-                ? "bg-blue-500"
-                : "bg-purple-500"
-            }`}
-          >
-            {message.role === "user" ? "Y" : "B"}
-          </div>
-          <h3 className="font-medium ml-2 text-sm">
-            {message.role === "user" ? "You" : "Bolt.alpha"}
-          </h3>
-        </div>
-        {message.role === "ai" &&
-          message.content.map((line, idx) => (
-            <div key={idx} className="ml-8 text-gray-300">
-              <Typewriter
-                words={[line]}
-                typeSpeed={30}
-                delaySpeed={30}
-              />
-            </div>
-          ))}
-          
-        {message.role === "user" &&
-          message.content.map((line, idx) => (
-            <div key={idx} className="ml-8 text-gray-300">
-              <ReactMarkdown>{line}</ReactMarkdown>
-            </div>
-          ))}
-      </div>
-    ))
-    
-  ) : (
-    <div className="text-center text-gray-500 mt-8 p-6 bg-gray-900/40 rounded-lg border border-gray-800">
-      <div className="inline-block p-3 bg-blue-500/20 rounded-full mb-4">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="text-blue-400"
-        >
-          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-        </svg>
-      </div>
-      <p className="text-xl font-semibold mb-2 text-gray-300">
-        Welcome to Bolt
-      </p>
-      <p className="mb-6 text-gray-400">
-        Start by describing the application you want to build
-      </p>
-      <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700 text-sm text-left text-gray-400">
-        <p>Examples:</p>
-        <ul className="mt-2 space-y-2">
-          <li className="hover:text-blue-400 cursor-pointer">
-            • Create a simple todo application with React
-          </li>
-          <li className="hover:text-blue-400 cursor-pointer">
-            • Build a weather dashboard that uses an API
-          </li>
-          <li className="hover:text-blue-400 cursor-pointer">
-            • Design a portfolio website with animations
-          </li>
-        </ul>
-      </div>
-    </div>
-  )}
-</div>
-
-
-{deployStatus && (
-  <div className="relative bottom-24 left-4 right-4 md:left-auto md:right-4 md:w-96">
-    <div
-      className={`p-4 rounded-lg shadow-lg transition-all ${
-        deployStatus === "active" ? "bg-yellow-900/90 border-l-2 border-yellow-500"
-          : deployStatus === "error" ? "bg-red-900/90 border-l-2 border-red-500"
-          : deployStatus === "success" ? "bg-green-900/90 border-l-2 border-green-500"
-          : "bg-gray-800/90 border-l-2 border-blue-500"
-      }`}
-    >
-      <div className="flex justify-between items-start">
-        <h3 className="font-medium mb-2 text-sm text-amber-400">Deployment Status: {deployStatus}</h3>
-        <button 
-          onClick={() => setDeployStatus("")} 
-          className="text-gray-400 hover:text-gray-200 transition-colors"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
-      {deployStage && (
-        <p className="text-sm">
-          <strong>Stage:</strong> {deployStage}
-        </p>
-      )}
-      {deployMessage && (
-        <p className="text-sm">
-          <strong>Message:</strong> {deployMessage}
-        </p>
-        
-      ) }
-      {deployLink && (
-        <p className="text-sm">
-          <strong>Deployed to:</strong>{" "}
-          <a
-            href={deployLink}
-            target="_blank"
-            rel="noreferrer"
-            className="text-blue-400 underline"
-          >
-            {deployLink}
-          </a>
-        </p>
-      )}
-    </div>
-  </div>
-)}
-
-          <div className="p-4 border-t border-gray-800 bg-gray-900/60">
-            <textarea
-              value={input}
-              onChange={handleChange}
-              placeholder="How can Bolt help you today?"
-              className="bg-gray-800/70 border border-gray-700 rounded-lg p-3 mb-3 text-gray-200 min-h-24 w-full focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all resize-none"
-            />
-            <div className="flex justify-between items-center">
-              <div className="flex space-x-2">
-                <button className="text-gray-400 hover:text-gray-300 p-1.5 rounded-md hover:bg-gray-800 transition-all">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="7 10 12 15 17 10"></polyline>
-                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                  </svg>
-                </button>
-                <button className="text-gray-400 hover:text-gray-300 p-1.5 rounded-md hover:bg-gray-800 transition-all">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
-                    <polyline points="16 6 12 2 8 6"></polyline>
-                    <line x1="12" y1="2" x2="12" y2="15"></line>
-                  </svg>
-                </button>
-              </div>
-              <Button
-                onClick={() => onGenerate(input)}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all ${
-                  !input.trim()
-                    ? "bg-gray-700 text-gray-400 cursor-not-allowed"
-                    : "bg-blue-600 hover:bg-blue-700 text-white"
-                }`}
-                disabled={loader || !input.trim()}
-              >
-                {loader ? (
-                  <div className="flex items-center">
-                    <svg
-                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
+            {Array.isArray(mes) && mes.length > 0 ? (
+              mes.map((message, index) => (
+                <div
+                  key={index}
+                  className={`p-4 rounded-lg mb-3 shadow-sm transition-all ${
+                    message.role === "user"
+                      ? "bg-gray-800/70 border-l-2 border-blue-500"
+                      : "bg-gray-900/70 border-l-2 border-purple-500"
+                  }`}
+                >
+                  <div className="flex items-center mb-2">
+                    <div
+                      className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${
+                        message.role === "user"
+                          ? "bg-blue-500"
+                          : "bg-purple-500"
+                      }`}
                     >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    <span>Processing</span>
+                      {message.role === "user" ? "Y" : "B"}
+                    </div>
+                    <h3 className="font-medium ml-2 text-sm">
+                      {message.role === "user" ? "You" : "Bolt.alpha"}
+                    </h3>
                   </div>
-                ) : (
-                  <>
-                    <span>Send</span>
+                  {message.role === "ai" &&
+                    message.content.map((line, idx) => (
+                      <div key={idx} className="ml-8 text-gray-300">
+                        <Typewriter
+                          words={[line]}
+                          typeSpeed={30}
+                          delaySpeed={30}
+                        />
+                      </div>
+                    ))}
+
+                  {message.role === "user" &&
+                    message.content.map((line, idx) => (
+                      <div key={idx} className="ml-8 text-gray-300">
+                        <ReactMarkdown>{line}</ReactMarkdown>
+                      </div>
+                    ))}
+                </div>
+              ))
+            ) : (
+              <div className="text-center text-gray-500 mt-8 p-6 bg-gray-900/40 rounded-lg border border-gray-800">
+                <div className="inline-block p-3 bg-blue-500/20 rounded-full mb-4">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-blue-400"
+                  >
+                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                  </svg>
+                </div>
+                <p className="text-xl font-semibold mb-2 text-gray-300">
+                  Welcome to Bolt
+                </p>
+                <p className="mb-6 text-gray-400">
+                  Start by describing the application you want to build
+                </p>
+                <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700 text-sm text-left text-gray-400">
+                  <p>Examples:</p>
+                  <ul className="mt-2 space-y-2">
+                    <li className="hover:text-blue-400 cursor-pointer">
+                      • Create a simple todo application with React
+                    </li>
+                    <li className="hover:text-blue-400 cursor-pointer">
+                      • Build a weather dashboard that uses an API
+                    </li>
+                    <li className="hover:text-blue-400 cursor-pointer">
+                      • Design a portfolio website with animations
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {deployStatus && (
+            <div className="relative bottom-24 left-4 right-4 md:left-auto md:right-4 md:w-96">
+              <div
+                className={`p-4 rounded-lg shadow-lg transition-all ${
+                  deployStatus === "active"
+                    ? "bg-yellow-900/90 border-l-2 border-yellow-500"
+                    : deployStatus === "error"
+                      ? "bg-red-900/90 border-l-2 border-red-500"
+                      : deployStatus === "success"
+                        ? "bg-green-900/90 border-l-2 border-green-500"
+                        : "bg-gray-800/90 border-l-2 border-blue-500"
+                }`}
+              >
+                <div className="flex justify-between items-start">
+                  <h3 className="font-medium mb-2 text-sm text-amber-400">
+                    Deployment Status: {deployStatus}
+                  </h3>
+                  <button
+                    onClick={() => setDeployStatus("")}
+                    className="text-gray-400 hover:text-gray-200 transition-colors"
+                  >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="16"
@@ -479,12 +475,116 @@ webContainer?.on('server-ready', (port, url) => {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     >
-                      <line x1="22" y1="2" x2="11" y2="13"></line>
-                      <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
                     </svg>
-                  </>
+                  </button>
+                </div>
+                {deployStage && (
+                  <p className="text-sm">
+                    <strong>Stage:</strong> {deployStage}
+                  </p>
                 )}
-              </Button>
+                {deployMessage && (
+                  <p className="text-sm">
+                    <strong>Message:</strong> {deployMessage}
+                  </p>
+                )}
+                {deployLink && (
+                  <p className="text-sm">
+                    <strong>Deployed to:</strong>{" "}
+                    <a
+                      href={deployLink}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-blue-400 underline"
+                    >
+                      {deployLink}
+                    </a>
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="p-4 border-t border-gray-800 bg-gray-900/60 flex">
+            <div
+              className={`relative ${
+                isSidebarVisible
+                  ? "translate-x-0 h-[100vh] w-[300px] bg-blue-600"
+                  : "-translate-x-full"
+              } mt-28 ml-4`}
+            >
+              <UserButton>
+                <img
+                  src={typeof image === "string" ? image : image.url}
+                />
+              </UserButton>
+            </div>
+
+            <div className="w-full">
+              <textarea
+                value={input}
+                onChange={handleChange}
+                placeholder="How can Bolt help you today?"
+                className="bg-gray-800/70 border  border-gray-700 rounded-lg p-3 mb-3 text-gray-200 min-h-24 w-full focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all resize-none"
+              />
+              <div className="flex justify-between items-center">
+                <div className="flex space-x-2"></div>
+                <Button
+                  onClick={() => onGenerate(input)}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all ${
+                    !input.trim()
+                      ? "bg-gray-700 text-gray-400 cursor-not-allowed"
+                      : "bg-blue-600 hover:bg-blue-700 text-white"
+                  }`}
+                  disabled={loader || !input.trim()}
+                >
+                  {loader ? (
+                    <div className="flex items-center">
+                      <svg
+                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      <span>Processing</span>
+                    </div>
+                  ) : (
+                    <>
+                      <span>Send</span>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                      </svg>
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -628,10 +728,7 @@ webContainer?.on('server-ready', (port, url) => {
             <SandpackProvider
               template="react"
               theme="dark"
-              customSetup={{
-                dependencies: { ...Lookup.DEPENDANCY },
-              }}
-              files={files}
+              files={flatFiles}
               options={{
                 externalResources: ["https://cdn.tailwindcss.com"],
               }}
@@ -664,16 +761,9 @@ webContainer?.on('server-ready', (port, url) => {
                     </div>
                   </div>
                 ) : (
-                  <div className="w-full h-[100vh]">
-                    <DeployAndDownload
-                      files={files}
-                      setDeployLink={setDeployLink}
-                      setDeployStatus={setDeployStatus}
-                      deployStatus={deployStatus}
-                      setBuildStage={setDeployStage}
-                      setProgressMessage={setDeployMessage}
-                      
-                    />
+                  <div className="w-full h-[100vh">
+                    {/* {previewUrl && <iframe style={{height:"100vh", width:"100vw"}} src={previewUrl} /> } */}
+                   <DeployAndDownload files={flatFiles}  setDeployStatus={setDeployStatus} deployStatus={deployStatus} />
                   </div>
                 )}
               </SandpackLayout>

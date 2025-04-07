@@ -2,16 +2,16 @@ import { SandpackPreview } from "@codesandbox/sandpack-react";
 import axios from "axios";
 import React, { useState } from "react";
 import {Rotate3DIcon} from 'lucide-react'
-const DeployAndDownload = ({ files,setDeployLink,setDeployStatus, deployStatus,setBuildStage,setProgressMessage }) => {
+const DeployAndDownload = ({ files,setDeployStatus, deployStatus}) => {
   
  const [isDownload,setIsDownload] = useState(false)
 
   const handleDeploy = async () => {
     try {
       setDeployStatus("active");
-      setBuildStage("initialization");
-      setProgressMessage("Starting deployment process...");
-     setDeployLink(null);
+    //   setBuildStage("initialization");
+    //   setProgressMessage("Starting deployment process...");
+    //  setDeployLink(null);
       
 
       const response = await axios.post("/api/deploy", {
@@ -19,10 +19,10 @@ const DeployAndDownload = ({ files,setDeployLink,setDeployStatus, deployStatus,s
       });
 
       const { url, stage, message, status } = response.data;
-      setDeployLink(url);
-      setDeployStatus(status || "success");
-      setProgressMessage(message || "Deployment completed successfully");
-      setBuildStage(stage || "success");
+      // setDeployLink(url);
+      // setDeployStatus(status || "success");
+      // setProgressMessage(message || "Deployment completed successfully");
+      // setBuildStage(stage || "success");
       console.log("link:", url);
       console.log("status:", status);
     } catch (error) {

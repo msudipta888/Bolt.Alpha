@@ -1,19 +1,20 @@
-import {  NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { config } from 'dotenv';
 config();
+
 import fs from 'fs';
 import path from 'path';
 import { exec } from 'child_process';
 import archiver from 'archiver';
 import axios from 'axios';
 import { promisify } from 'util';
-import {rimraf} from 'rimraf';
+import { rimraf } from 'rimraf';
+import { supabase } from '@/app/supabase/supabaseClient';
+import { PassThrough } from 'stream';
 
-// Convert callback-based functions to promise-based
 const execPromise = promisify(exec);
-//const rimrafPromise = promisify(rimraf);
 
-// Store build progress for GET requests
+// Build progress tracking
 let buildProgress = {
   status: 'idle',
   stage: '',
@@ -21,44 +22,14 @@ let buildProgress = {
   timestamp: Date.now()
 };
 
-// Improved interfaces
 interface FileData {
   code: string;
 }
 
 interface FileObject {
   name: string;
-  content: string;
+  content: string | Buffer;
 }
-
-const transformFiles = (files: Record<string, FileData>): FileObject[] => {
-  return Object.entries(files).map(([filePath, fileData]) => {
-    // Remove leading slash if present.
-    let name = filePath.startsWith("/") ? filePath.substring(1) : filePath;
-    
-    if (
-      name === "App.js" ||
-      name === "App.css" ||
-      name === "index.js" ||
-      name.startsWith("components/") ||
-      name.startsWith("pages/")
-    ) {
-      // If not already prefixed with "src/", add it.
-      if (!name.startsWith("src/")) {
-        name = "src/" + name;
-      }
-    }
-    
-    let content = fileData?.code;
-    if (typeof content !== "string") {
-      content = String(content);
-    }
-   
-    return { name, content };
-  });
-};
-
-// Update build progress
 function updateProgress(status: string, stage: string, message: string) {
   buildProgress = {
     status,
@@ -68,204 +39,251 @@ function updateProgress(status: string, stage: string, message: string) {
   };
   console.log(`[${status}] ${stage}: ${message}`);
 }
+const transformFiles = (files: Record<string, FileData>): FileObject[] => {
+  const fileNames = Object.keys(files); // Get all file names to check for index.js
+  const hasIndexJs = fileNames.includes("index.js"); // Check if index.js exists
 
-// Write files to disk with better error handling
-async function writeFilesToDisk(files: FileObject[], outputDir: string): Promise<void> {
-  try {
-    updateProgress('active', 'file_preparation', 'Writing files to disk');
-    
-    // Create output directory if it doesn't exist
-    if (!fs.existsSync(outputDir)) {
-      console.log('no output dir');
-      fs.mkdirSync(outputDir, { recursive: true });
-    }
-    
-    // Process each file
-    for (const file of files) {
-      const fullPath = path.join(outputDir, file.name);
-      const folder = path.dirname(fullPath);
-      
-      // Create folder structure if needed
-      if (!fs.existsSync(folder)) {
-        console.log('no folder exists');
-        fs.mkdirSync(folder, { recursive: true });
+  return Object.entries(files).map(([filePath, fileData]) => {
+    let name = filePath.startsWith("/") ? filePath.substring(1) : filePath;
+
+    // Handle specific cases for file paths
+    if (
+      name === "App.js" ||
+      name === "App.css" ||
+      name.startsWith("components/") ||
+      name.startsWith("pages/")
+    ) {
+      if (!name.startsWith("src/")) {
+        name = "src/" + name;
       }
-      
-      // Write file content
-      fs.writeFileSync(fullPath, file.content);
     }
-    
-    // Create src directory if it doesn't exist
-    const srcDir = path.join(outputDir, 'src');
-    if (!fs.existsSync(srcDir)) {
-      console.log('no src dir')
-      fs.mkdirSync(srcDir, { recursive: true });
-    }
-    
-    // Add package.json if not already included
-    const packageJsonPath = path.join(outputDir, 'package.json');
-    if (!fs.existsSync(packageJsonPath)) {
-      const defaultPackageJson = {
-        name: "bolt-generated-app",
-        version: "1.0.0",
-        private: true,
-        dependencies: {
-          "react": "^18.2.0",
-          "react-dom": "^18.2.0",
-          "react-router-dom":"^7.4.0",
-          "react-scripts": "5.0.1",
-          "lucide-react": "^0.292.0",
-          "tailwindcss": "^3.3.5",
-          "autoprefixer": "^10.4.16",
-          "postcss": "^8.4.31"
-        },
-        scripts: {
-          "start": "react-scripts start",
-          "build": "react-scripts build",
-          "test": "react-scripts test",
-          "eject": "react-scripts eject"
-        },
-        browserslist: {
-          "production": [">0.2%", "not dead", "not op_mini all"],
-          "development": ["last 1 chrome version", "last 1 firefox version", "last 1 safari version"]
-        }
-      };
-      fs.writeFileSync(packageJsonPath, JSON.stringify(defaultPackageJson, null, 2));
-    }
-    
-    // Add index.js if not already included
-    const indexJsPath = path.join(outputDir, 'src/index.js');
-    if (!fs.existsSync(indexJsPath)) {
-      console.log('no index.js file');
-      const defaultIndexJs = `
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App';
-import './App.css';
+    let content = fileData?.code;
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
-`;
-      fs.writeFileSync(indexJsPath, defaultIndexJs);
-    }
+//     if (name === "src/index.js" && fileData?.code.includes("<")) {
+//       name = "src/index.jsx";
+//       content = `import React from 'react';
+// import ReactDOM from 'react-dom';
+// import App from './App';
+
+// ReactDOM.render(React.createElement(App), document.getElementById('root'));`
+//     }
     
-    // Ensure public/index.html exists
-    const publicDir = path.join(outputDir, 'public');
-    if (!fs.existsSync(publicDir)) {
-      console.log('no public dir')
-      fs.mkdirSync(publicDir, { recursive: true });
+    // Handle index.html in the public directory
+    if (name.startsWith("public/")) {
+      if (name === "public/index.html") {
+        name = "index.html"; 
+      }
     }
-    
-    const indexHtmlPath = path.join(publicDir, 'index.html');
-    if (!fs.existsSync(indexHtmlPath)) {
-      console.log('no index.html file');
-      const defaultIndexHtml = `
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
-    <meta name="description" content="Web application created using React" />
-    <title>Bolt App</title>
-  </head>
-  <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
-  </body>
-</html>
-`;
-      fs.writeFileSync(indexHtmlPath, defaultIndexHtml);
+
+    if (typeof content !== "string") {
+      content = String(content);
     }
-    
-    updateProgress('active', 'file_preparation', `Successfully wrote ${files.length} files to ${outputDir}`);
-  } catch (error) {
-    updateProgress('error', 'file_preparation', `Failed to write files: ${error instanceof Error ? error.message : String(error)}`);
-    throw new Error(`Failed to write files: ${error instanceof Error ? error.message : String(error)}`);
+
+    return { name, content };
+  }).filter(Boolean) as FileObject[]; 
+};
+
+
+function writeFilesToDisk(files: FileObject[], baseDir: string): void {
+  if (!fs.existsSync(baseDir)) {
+    fs.mkdirSync(baseDir, { recursive: true });
   }
+  files.forEach(file => {
+    const fullPath = path.join(baseDir, file.name);
+    const folder = path.dirname(fullPath);
+    if (!fs.existsSync(folder)) {
+      fs.mkdirSync(folder, { recursive: true });
+    }
+    fs.writeFileSync(fullPath, file.content);
+    console.log(`Wrote file: ${fullPath}`); 
+  });
+  updateProgress('active', 'file_preparation', `Wrote ${files.length} files to ${baseDir}`);
 }
 
-// Run build process with improved error handling and timeout
 async function runBuild(workingDir: string): Promise<string> {
   try {
+    // Log project contents before build
+    console.log('Project directory contents before build:', fs.readdirSync(workingDir));
+    
+    // Check for the package.json file
+    if (!fs.existsSync(path.join(workingDir, 'package.json'))) {
+      updateProgress('error', 'build_process', 'Missing package.json file');
+      throw new Error('Missing package.json file');
+    }
+    
     updateProgress('active', 'build_process', 'Installing dependencies...');
-    console.log('working dir', workingDir);
     await execPromise('npm install', { cwd: workingDir, timeout: 120000 });
     
     updateProgress('active', 'build_process', 'Starting production build...');
     const { stdout } = await execPromise('npm run build', { 
       cwd: workingDir,
-      timeout: 180000 // 3 minutes timeout for build
+      timeout: 180000 
     });
+    
+    // Log directory contents after build to see where files were created
+    console.log('Project directory contents after build:', fs.readdirSync(workingDir));
+    
+    // Check common build output directories
+    const possibleBuildDirs = ['build', 'dist', 'out', 'public'];
+    let buildDir = null;
+    
+    for (const dir of possibleBuildDirs) {
+      const dirPath = path.join(workingDir, dir);
+      if (fs.existsSync(dirPath)) {
+        console.log(`Found potential build output directory: ${dir}`);
+        buildDir = dirPath;
+        break;
+      }
+    }
+    
+    if (!buildDir) {
+      updateProgress('warning', 'build_process', 'Could not find build output directory');
+      // Continue with original path, but log the warning
+    }
     
     updateProgress('active', 'build_process', 'Build completed successfully');
     return stdout;
-  } catch (error) {
-    updateProgress('error', 'build_process', `Build error: ${error}`);
-    throw new Error(`Build process failed: ${error}`);
+  } catch (error: any) {
+    updateProgress('error', 'build_process', `Build error: ${error.message || error}`);
+    throw new Error(`Build process failed: ${error.message || error}`);
   }
 }
 
-// Create ZIP archive with progress tracking
-function zipDirectory(sourceDir: string, outPath: string): Promise<string> {
-  return new Promise<string>((resolve, reject) => {
-    try {
-      updateProgress('active', 'zip_creation', 'Creating ZIP archive...');
-      const output = fs.createWriteStream(outPath);
-      const archive = archiver('zip', { zlib: { level: 9 } });
-      
-      output.on('close', () => {
-        const size = archive.pointer();
-        updateProgress('active', 'zip_creation', `Created ZIP file of size ${(size / 1024 / 1024).toFixed(2)} MB`);
-        resolve(outPath);
-      });
-      
-      archive.on('error', (err: Error) => {
-        updateProgress('error', 'zip_creation', `Zip creation error: ${err.message}`);
-        reject(err);
-      });
-      
-      archive.on("progress", (progress) => {
-        const percentage = progress.entries.processed / progress.entries.total * 100;
-        if (progress.entries.total > 0) {
-          updateProgress('active', 'zip_creation', `Zipping: ${percentage.toFixed(1)}% complete`);
+
+async function uploadDirectoryToSupabase(localDir: string, remotePrefix: string) {
+  console.log(`Uploading directory: ${localDir} to ${remotePrefix}`);
+  try {
+    const entries = fs.readdirSync(localDir);
+    console.log(`Files in ${localDir}:`, entries);
+    
+    for (const entry of entries) {
+      const fullPath = path.join(localDir, entry);
+      const stats = fs.statSync(fullPath);
+      if (stats.isDirectory()) {
+        await uploadDirectoryToSupabase(fullPath, `${remotePrefix}/${entry}`);
+      } else if (stats.isFile()) {
+        const fileBuffer = fs.readFileSync(fullPath);
+        // Ensure remote path uses forward slashes
+        const remotePath = `${remotePrefix}/${entry}`.replace(/\\/g, '/');
+        console.log(`Uploading ${remotePath}...`);
+        const { error, data } = await supabase
+          .storage
+          .from('bolt.alpha')
+          .upload(remotePath, fileBuffer, { upsert: true });
+        if (error) {
+          console.error(`Error uploading ${remotePath}: ${error.message}`);
+        } else {
+          console.log(`Uploaded ${remotePath}:`, data);
         }
-      });
-      
-      archive.pipe(output);
-      
-      // Check if source directory exists
-      if (!fs.existsSync(sourceDir)) {
-        throw new Error(`Build directory does not exist: ${sourceDir}`);
       }
-      
-      archive.directory(sourceDir, false);
-      archive.finalize();
-    } catch (error) {
-      updateProgress('error', 'zip_creation', `Error initiating zip process: ${error instanceof Error ? error.message : String(error)}`);
-      reject(error);
     }
+  } catch (error) {
+    console.error(`Error processing directory ${localDir}:`, error);
+    throw error;
+  }
+}
+
+async function downloadFilesFromSupabase(prefix: string): Promise<FileObject[]> {
+  console.log(`Downloading files from Supabase with prefix: ${prefix}`);
+  const files: FileObject[] = [];
+  
+  // Function to recursively list and download files
+  async function listAndDownload(currentPrefix: string) {
+    const { data: fileList, error } = await supabase
+      .storage
+      .from('bolt.alpha')
+      .list(currentPrefix, { limit: 1000 });
+      
+    if (error) {
+      console.error(`Error listing files with prefix ${currentPrefix}:`, error);
+      throw error;
+    }
+    
+    console.log(`Found ${fileList.length} items with prefix ${currentPrefix}`);
+    
+    for (const item of fileList) {
+      const itemPath = currentPrefix ? `${currentPrefix}/${item.name}` : item.name;
+      
+      if (item.id === null) {
+        // This is a folder, recursively process it
+        console.log(`Found subfolder: ${itemPath}`);
+        await listAndDownload(itemPath);
+      } else {
+        // This is a file, download it
+        console.log(`Downloading file: ${itemPath}`);
+        const { data, error: downloadError } = await supabase
+          .storage
+          .from('bolt.alpha')
+          .download(itemPath);
+          
+        if (downloadError) {
+          console.error(`Download error for ${itemPath}:`, downloadError);
+          continue;
+        }
+        
+        let buffer: Buffer;
+        if (Buffer.isBuffer(data)) {
+          buffer = data;
+        } else {
+          buffer = Buffer.from(await data.arrayBuffer());
+        }
+        
+        // Store with the full path relative to the prefix
+        const relPath = itemPath.startsWith(prefix + '/') 
+          ? itemPath.substring(prefix.length + 1) 
+          : item.name;
+          
+        files.push({ name: relPath, content: buffer });
+        console.log(`Downloaded: ${relPath} (${buffer.length} bytes)`);
+      }
+    }
+  }
+  
+  await listAndDownload(prefix);
+  console.log(`Downloaded ${files.length} files from prefix ${prefix}`);
+  return files;
+}
+
+async function createZipFromFiles(files: FileObject[]): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const archive = archiver('zip', { zlib: { level: 9 } });
+    const chunks: Buffer[] = [];
+    const zipStream = new PassThrough();
+
+    zipStream.on('data', (chunk: any) => {
+      chunks.push(chunk);
+    });
+    zipStream.on('end', () => {
+      resolve(Buffer.concat(chunks));
+    });
+    archive.on('error', (err: Error) => reject(err));
+    archive.pipe(zipStream);
+
+    files.forEach(file => {
+      // Log what we're adding to the ZIP
+      console.log(`Adding to ZIP: ${file.name} (${file.content.length} bytes)`);
+      archive.append(file.content, { name: file.name });
+    });
+    archive.finalize();
   });
 }
 
-// Create a new Netlify site with better error handling
+/**
+ * Creates a new Netlify site via Netlify API.
+ */
 async function createNetlifySite(): Promise<{ id: string, name: string, url: string }> {
-  const url = 'https://api.netlify.com/api/v1/sites';
+  const netlifyUrl = 'https://api.netlify.com/api/v1/sites';
   const token = process.env.DEPLOY_ACCESS_TOKEN;
   
   updateProgress('active', 'site_creation', 'Creating Netlify site...');
   
   if (!token) {
-    updateProgress('error', 'site_creation', 'DEPLOY_ACCESS_TOKEN is not set in environment variables');
+    updateProgress('error', 'site_creation', 'DEPLOY_ACCESS_TOKEN is not set');
     throw new Error('DEPLOY_ACCESS_TOKEN is not set in environment variables');
   }
   
   try {
-    const response = await axios.post(url, {
+    const response = await axios.post(netlifyUrl, {
       name: `bolt-app-${Date.now().toString(36)}`,
       ssl: true
     }, {
@@ -274,158 +292,113 @@ async function createNetlifySite(): Promise<{ id: string, name: string, url: str
         'Content-Type': 'application/json'
       }
     });
-    
     updateProgress('active', 'site_creation', `Created Netlify site: ${response.data.name}`);
     return {
       id: response.data.id,
       name: response.data.name,
       url: response.data.ssl_url || response.data.url
     };
-  } catch (error) {
-    updateProgress('error', 'site_creation', `Failed to create Netlify site: ${error}`);
-    throw new Error(`Failed to create Netlify site: ${error}`);
-  }
-}
-interface NetlifyDeployResponse {
-  id: string;
-  deploy_url: string;
-  site_id: string;
-}
-// Deploy ZIP to Netlify with improved error handling and progress tracking
-async function deployZipToNetlify(siteId: string, zipPath: string): Promise<NetlifyDeployResponse> {
-  const deployUrl = `https://api.netlify.com/api/v1/sites/${siteId}/deploys`;
-  const token = process.env.DEPLOY_ACCESS_TOKEN;
-  
-  updateProgress('active', 'deployment', 'Deploying to Netlify...');
-  
-  if (!token) {
-    updateProgress('error', 'deployment', 'DEPLOY_ACCESS_TOKEN is not set in environment variables');
-    throw new Error('DEPLOY_ACCESS_TOKEN is not set in environment variables');
-  }
-  
-  if (!fs.existsSync(zipPath)) {
-    updateProgress('error', 'deployment', `ZIP file does not exist at ${zipPath}`);
-    throw new Error(`ZIP file does not exist at ${zipPath}`);
-  }
-  
-  try {
-    const zipData = fs.readFileSync(zipPath);
-    const zipSize = (zipData.length / 1024 / 1024).toFixed(2);
-    updateProgress('active', 'deployment', `Uploading ZIP file (${zipSize} MB) to Netlify...`);
-    
-    const response = await axios.post(deployUrl, zipData, {
-      headers: {
-        'Content-Type': 'application/zip',
-        'Authorization': `Bearer ${token}`
-      },
-      onUploadProgress: (progressEvent) => {
-        if (progressEvent.total) {
-          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          updateProgress('active', 'deployment', `Upload progress: ${percentCompleted}%`);
-        }
-      }
-    });
-      
-    updateProgress('success', 'deployment', `Deployed to Netlify: ${response.data.deploy_url}`);
-    return response.data;
-  } catch (error) {
-    updateProgress('error', 'deployment', `Failed to deploy to Netlify: ${error}`);
-    throw new Error(`Failed to deploy to Netlify: ${error}`);
+  } catch (error: any) {
+    updateProgress('error', 'site_creation', `Failed to create Netlify site: ${error.message || error}`);
+    throw new Error(`Failed to create Netlify site: ${error.message || error}`);
   }
 }
 
-// Clean up temporary files and directories
-async function cleanupTempFiles(paths: string[]) {
-  updateProgress('active', 'cleanup', 'Cleaning up temporary files...');
-  try {
-    for (const filePath of paths) {
-      if (fs.existsSync(filePath)) {
-        if (fs.lstatSync(filePath).isDirectory()) {
-          // Directly await rimraf
-          await rimraf(filePath);
-        } else {
-          fs.unlinkSync(filePath);
-        }
-        updateProgress('active', 'cleanup', `Removed: ${filePath}`);
-      }
+/**
+ * Deploys a ZIP buffer to Netlify.
+ */
+async function deployZipBufferToNetlify(siteId: string, zipBuffer: Buffer) {
+  const token = process.env.DEPLOY_ACCESS_TOKEN;
+  updateProgress('active', 'deployment', 'Uploading ZIP file to Netlify...');
+  const deployUrl = `https://api.netlify.com/api/v1/sites/${siteId}/deploys`;
+  const response = await axios.post(deployUrl, zipBuffer, {
+    headers: {
+      'Content-Type': 'application/zip',
+      'Authorization': `Bearer ${token}`
     }
-    updateProgress('active', 'cleanup', 'Cleanup completed');
-  } catch (error) {
-    updateProgress('warning', 'cleanup', `Warning: cleanup failed - ${error instanceof Error ? error.message : String(error)}`);
-    // Non-fatal error, just log warning
-  }
+  });
+  updateProgress('success', 'deployment', `Deployed to Netlify: ${response.data.deploy_url}`);
+  return response.data;
 }
-// Main API endpoint handler
-export async function POST(req: Request): Promise<NextResponse> {
-  // Create unique project ID for this deployment
-  const projectId = `bolt-${Date.now().toString(36)}`;
-  const tempSrcDir = path.join(process.cwd(), `temp-${projectId}`);
-  const buildDir = path.join(tempSrcDir, 'build');
-  const zipPath = path.join(process.cwd(), `${projectId}.zip`);
-  
+
+
+export async function POST(req: Request) {
   try {
-    updateProgress('active', 'initialization', `Starting deployment process for project ${projectId}`);
-    
-    // Parse request body
+    // 1. Receive source files from client.
     const { files } = await req.json();
-    
+    console.log('Received files:', files);
     if (!files || Object.keys(files).length === 0) {
       updateProgress('error', 'initialization', 'No files provided for deployment');
-      return NextResponse.json({ 
-        error: 'No files provided for deployment' 
-      }, { status: 400 });
+      return NextResponse.json({ error: 'No files provided for deployment' }, { status: 400 });
     }
     
-    // Transform and write files
+    // 2. Recursively transform files.
     const fileObjects = transformFiles(files);
-    await writeFilesToDisk(fileObjects, tempSrcDir);
+    console.log('Transformed files:', fileObjects.map(f => f.name));
     
-    // Build the project
-    await runBuild(tempSrcDir);
+    // 3. Write files to a temporary project directory in /tmp.
+    const projectId = `bolt-${Date.now().toString(36)}`;
+    const tmpProjectDir = path.join('/tmp', projectId);
+    writeFilesToDisk(fileObjects, tmpProjectDir);
     
-    // Check if build directory exists and contains index.html
-    if (!fs.existsSync(path.join(buildDir, 'index.html'))) {
-      updateProgress('error', 'build_process', 'Build failed: index.html not found in build output');
-      throw new Error('Build failed: index.html not found in build output');
+    // 4. Run the build process in that directory.
+    // Make sure your package.json build script outputs production files to a "build" folder.
+    await runBuild(tmpProjectDir);
+    
+    const buildOutputDir = path.join(tmpProjectDir, 'dist');
+   // After checking the dist directory
+console.log('Contents of dist directory:', fs.readdirSync(buildOutputDir));
+
+// If dist is missing critical files but they exist at the root
+if (fs.readdirSync(buildOutputDir).length === 1 && fs.readdirSync(buildOutputDir)[0] === 'index.html') {
+  console.log('Dist only has index.html, looking for assets in project root...');
+  // Copy root assets to dist if they exist
+  ['index.js', 'index.css', 'assets'].forEach(item => {
+    const srcPath = path.join(tmpProjectDir, item);
+    if (fs.existsSync(srcPath)) {
+      const destPath = path.join(buildOutputDir, item);
+      if (fs.statSync(srcPath).isDirectory()) {
+        // Copy directory recursively
+        fs.mkdirSync(destPath, { recursive: true });
+        fs.cpSync(srcPath, destPath, { recursive: true });
+      } else {
+        // Copy file
+        fs.copyFileSync(srcPath, destPath);
+      }
+      console.log(`Copied ${item} to dist directory`);
     }
+  });
+}
     
-    // Create ZIP archive
-    await zipDirectory(buildDir, zipPath);
+    // 5. Upload build output recursively to Supabase under "bolt-build"
+    await uploadDirectoryToSupabase(buildOutputDir, 'bolt-build');
     
-    // Create Netlify site
+    // 6. Download all files from Supabase Storage with prefix "bolt-build".
+    const downloadedFiles = await downloadFilesFromSupabase('bolt-build');
+    console.log('Downloaded files:', downloadedFiles.map(f => f.name));
+    
+    // 7. Create an in-memory ZIP archive from the downloaded build files.
+    const zipBuffer = await createZipFromFiles(downloadedFiles);
+    console.log('ZIP archive created, size:', zipBuffer.length);
+    
+    // 8. Create a Netlify site and deploy the ZIP.
     const site = await createNetlifySite();
+    const deployResult = await deployZipBufferToNetlify(site.id, zipBuffer);
     
-    // Deploy to Netlify
-    const deployResult = await deployZipToNetlify(site.id, zipPath);
+    // 9. Cleanup the temporary project directory.
+    await rimraf(tmpProjectDir);
     
-    // Clean up
-    await cleanupTempFiles([tempSrcDir, zipPath]);
-    
-    // Return success response
     return NextResponse.json({
-      url: deployResult?.deploy_url,
+      url: deployResult.deploy_url,
       stage: "deploy completed",
       message: `Congratulations! Your site has been deployed to Netlify`,
       status: 'success'
     });
-    
-  } catch (error) {
+  } catch (error: any) {
     console.error('Deployment failed:', error);
-    
-    // Attempt cleanup even if deployment failed
-    try {
-      await cleanupTempFiles([tempSrcDir, zipPath]);
-    } catch (cleanupError) {
-      console.error('Cleanup failed after error:', cleanupError);
-    }
-    
-    // Determine error stage
-    const stage = buildProgress.stage || 'unknown';
-    
-    // Return structured error response
     return NextResponse.json({
-      error: error || 'Unknown deployment failure',
-      stage,
+      error: error.message || 'Unknown deployment failure',
+      stage: buildProgress.stage || 'unknown',
       details: error
     }, { status: 500 });
   }
