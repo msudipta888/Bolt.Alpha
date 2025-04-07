@@ -1,18 +1,24 @@
 "use client";
-import { useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import Gemini from "./AiPage/Gemini";
 import { Message, MessageContext } from "./context/MessageContext";
 import { actionContext } from "./context/Action";
 import { ActiveContext } from "./context/ActiveContext";
+import Signup from './sign-up/[[...sign-up]]/page'
+import Signin from './sign-in/[[...sign-in]]/page'
+import { useUser } from '@clerk/nextjs';
+import { ImageContext, profileImage } from "./context/imageContext";
 
 export default function Home() {
   const [mes, setMes] = useState<Message[]>([]);
   const [action, setAction] = useState("null");
   const [active, setActive] = useState("code");
-  
+  const { isSignedIn, user } = useUser();
+  const [image, setImage] = useState<profileImage | string>('');
+ 
   return (
     <div className="h-[100vh] w-[100vw] text-white">
-      <div className="containe h-[100vh] mx-auto px-5 -pt-3 ">
+      <div className="container h-[100vh] mx-auto px-5 -pt-3">
         {/* Header with logo */}
         <header className="flex items-center justify-between mb-8">
           <div className="flex items-center">
@@ -32,24 +38,28 @@ export default function Home() {
                 />
               </svg>
             </div>
-            <h1 className="text-2xl ml-4  font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500 mt-5">
+            <h1 className="text-2xl ml-4 font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500 mt-5">
               Bolt
             </h1>
           </div>
-         
         </header>
 
-       
-        <main className="h-screen w-[100vw]  rounded-xl shadow-xl overflow-hidden relative">
-        
-
-          <MessageContext.Provider value={{ mes, setMes }}>
-            <actionContext.Provider value={{ action, setAction }}>
-              <ActiveContext.Provider value={{ active, setActive }}>
-               <Gemini/>
-              </ActiveContext.Provider>
-            </actionContext.Provider>
-          </MessageContext.Provider>
+        <main className="h-screen w-[100vw] rounded-xl shadow-xl overflow-hidden relative">
+          {
+            !isSignedIn ?<Signin />  
+            : !user ? <Signup /> 
+            : (
+              <ImageContext.Provider value={{ image, setImage }}>
+                <MessageContext.Provider value={{ mes, setMes }}>
+                  <actionContext.Provider value={{ action, setAction }}>
+                    <ActiveContext.Provider value={{ active, setActive }}>
+                      <Gemini />
+                    </ActiveContext.Provider>
+                  </actionContext.Provider>
+                </MessageContext.Provider>
+              </ImageContext.Provider>
+            )
+          }
         </main>
 
         {/* Footer */}
