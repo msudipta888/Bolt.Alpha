@@ -2,7 +2,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { config } from "dotenv";
 import { NextRequest, NextResponse } from "next/server";
 config();
-const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY2 as string
+const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY as string
 const genAI = new GoogleGenerativeAI(apiKey);
 
 const chatHistory = new Map()
