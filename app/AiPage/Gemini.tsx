@@ -7,6 +7,8 @@ import {
   SandpackProvider,
   SandpackLayout,
   SandpackCodeEditor,
+  SandpackPreview,
+  SandpackTranspiledCode,
 } from "@codesandbox/sandpack-react";
 import { SandpackFileExplorer } from "sandpack-file-explorer";
 import { MessageContext, MessageContextType } from "../context/MessageContext";
@@ -18,12 +20,17 @@ import { Typewriter } from "react-simple-typewriter";
 import { Files } from "./File";
 import { ImageContext } from "../context/imageContext";
 
-import { Sidebar } from "./Sidebar";
 //import WebContainerPreview from "./Webcontainer";
-import { WebContainer } from "@webcontainer/api";
+
 import { useClerk, UserButton } from "@clerk/nextjs";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { ScrollArea } from "@radix-ui/react-scroll-area";
+import { ScrollBar } from "@/components/ui/scroll-area";
+
 
 const Gemini = () => {
+  
+
   const [files, setFiles] = useState(Files);
   const { mes, setMes } = useContext(MessageContext) as MessageContextType;
   const [input, setInput] = useState("");
@@ -38,11 +45,11 @@ const Gemini = () => {
   const [deployLink, setDeployLink] = useState("");
   const { image, setImage } = useContext(ImageContext);
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
-  const [webContainer, setWebContainer] = useState<WebContainer | null>(null);
+  //const [webContainer, setWebContainer] = useState<WebContainer | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 const [flatFiles, setFlatFiles] = useState<Record<string, { code: string }> | undefined>(undefined);
-  const user = useClerk();
-const iframe = useRef<HTMLIFrameElement>(null)
+ // const user = useClerk();
+
   // Generate a session ID when the component mounts
   useEffect(() => {
     setSessionId(uuidv4());
@@ -101,20 +108,20 @@ const iframe = useRef<HTMLIFrameElement>(null)
       setLoader(false);
     }
   };
-  useEffect(() => {
-    if (user) {
-      setImage({
-        url: user.user?.imageUrl || "",
-        alt: user.user?.fullName || "",
-      });
-     const userdetail = async()=>{
-      await axios.post("/api/user",{
-        user
-      })
-     }
-     userdetail();
-    }
-  }, []);
+  // useEffect(() => {
+  //   if (user) {
+  //     setImage({
+  //       url: user.user?.imageUrl || "",
+  //       alt: user.user?.fullName || "",
+  //     });
+  //    const userdetail = async()=>{
+  //     await axios.post("/api/user",{
+  //       user
+  //     })
+  //    }
+  //    userdetail();
+  //   }
+  // }, []);
   const generateCode = async () => {
     setLoader(true);
     try {
@@ -223,69 +230,6 @@ const iframe = useRef<HTMLIFrameElement>(null)
       console.log(flatFiles)
       setFlatFiles(flatFiles);
   }, [files]);
-  useEffect(() => {
-    const updateFiles = async () => {
-    
-      if (webContainer && flatFiles) {
-        for (const [path, { code }] of Object.entries(flatFiles)) {
-          try {
-            await webContainer.fs.writeFile(path, code);
-          } catch (error) {
-            console.error(`Failed to update file ${path}:`, error);
-          }
-        }
-      }
-    };
-    updateFiles();
-  }, [flatFiles, webContainer]);
-  
-  useEffect(() => {
-    const initWebContainer = async () => {
-      try {
-        const container = await WebContainer.boot();
-        setWebContainer(container);
-        await container.mount(files);
-      } catch (error) {
-        console.error("Failed to initialize WebContainer:", error);
-      }
-    };
-
-    initWebContainer();
-  }, [files]);
-
-  useEffect(()=>{
-   if(active==="preview"){
-    runProjectInWebContainer();
-   }
-  },[active==="preview"])
-  
-  const runProjectInWebContainer = async () => {
-    if (!webContainer) return;
-
-    try {
-     
-      const installProcess = await webContainer.spawn("npm", ["install"]);
-      installProcess.output.pipeTo(
-        new WritableStream({
-          write(data) {
-            console.log(data);
-          },
-        })
-      );
-       await webContainer.spawn("npm", ["run", "dev"]);
-      
-      webContainer.on("server-ready", (port, url) => {
-        console.log(port);
-        console.log(url);
-        setPreviewUrl(url)
-       
-      });
-      
-      console.log(previewUrl)
-    } catch (error) {
-      console.error("Error running project in WebContainer:", error);
-    }
-  };
 
   return (
     <div className="h-[100vh] w-[100vw] pl-3 pr-3 text-gray-200 overflow-hidden">
@@ -443,84 +387,15 @@ const iframe = useRef<HTMLIFrameElement>(null)
             )}
           </div>
 
-          {deployStatus && (
-            <div className="relative bottom-24 left-4 right-4 md:left-auto md:right-4 md:w-96">
-              <div
-                className={`p-4 rounded-lg shadow-lg transition-all ${
-                  deployStatus === "active"
-                    ? "bg-yellow-900/90 border-l-2 border-yellow-500"
-                    : deployStatus === "error"
-                      ? "bg-red-900/90 border-l-2 border-red-500"
-                      : deployStatus === "success"
-                        ? "bg-green-900/90 border-l-2 border-green-500"
-                        : "bg-gray-800/90 border-l-2 border-blue-500"
-                }`}
-              >
-                <div className="flex justify-between items-start">
-                  <h3 className="font-medium mb-2 text-sm text-amber-400">
-                    Deployment Status: {deployStatus}
-                  </h3>
-                  <button
-                    onClick={() => setDeployStatus("")}
-                    className="text-gray-400 hover:text-gray-200 transition-colors"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <line x1="18" y1="6" x2="6" y2="18"></line>
-                      <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                  </button>
-                </div>
-                {deployStage && (
-                  <p className="text-sm">
-                    <strong>Stage:</strong> {deployStage}
-                  </p>
-                )}
-                {deployMessage && (
-                  <p className="text-sm">
-                    <strong>Message:</strong> {deployMessage}
-                  </p>
-                )}
-                {deployLink && (
-                  <p className="text-sm">
-                    <strong>Deployed to:</strong>{" "}
-                    <a
-                      href={deployLink}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-blue-400 underline"
-                    >
-                      {deployLink}
-                    </a>
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-
           <div className="p-4 border-t border-gray-800 bg-gray-900/60 flex">
-            <div
+            {/* <div
               className={`relative ${
                 isSidebarVisible
                   ? "translate-x-0 h-[100vh] w-[300px] bg-blue-600"
                   : "-translate-x-full"
               } mt-28 ml-4`}
             >
-              <UserButton>
-                <img
-                  src={typeof image === "string" ? image : image.url}
-                />
-              </UserButton>
-            </div>
+            </div> */}
 
             <div className="w-full">
               <textarea
@@ -724,7 +599,7 @@ const iframe = useRef<HTMLIFrameElement>(null)
           </div>
 
           {/* Sandpack editor */}
-          <div className="flex-grow relative h-full overflow-hidden w-full">
+          <div className="flex-grow relative h-[100vh] overflow-hidden w-full">
             <SandpackProvider
               template="react"
               theme="dark"
@@ -735,17 +610,27 @@ const iframe = useRef<HTMLIFrameElement>(null)
             > 
               <SandpackLayout className="!h-full">
                 {active === "code" ? (
+                  <ResizablePanelGroup direction="horizontal" className="h-full w-full rounded-lg border">
                   <div className="flex h-full w-full">
+                    <ResizablePanel defaultSize={22}>
                     <div className="w-56 min-h-[100vh] overflow-y-auto border-r border-gray-800  custom-scrollbar">
                       <div className="p-2 border-b border-gray-800 flex justify-between items-center">
                         <h3 className="text-sm font-semibold text-gray-300">
                           Files
                         </h3>
                       </div>
-                      <div>
+
+                      <div className="h-full">    
                         <SandpackFileExplorer />
+                       
+                       
                       </div>
                     </div>
+                    </ResizablePanel >
+                    <ResizableHandle withHandle />
+
+                    <ResizablePanel defaultSize={75}>
+                      <ScrollArea className="h-full">
                     <div className="flex-grow  overflow-hidden">
                       <SandpackCodeEditor
                         showLineNumbers={true}
@@ -753,41 +638,53 @@ const iframe = useRef<HTMLIFrameElement>(null)
                         className="h-full"
                         style={{
                           height: "100%",
-                          minHeight: "100%", // Add this
-                          maxHeight: "calc(100vh - 120px)", // Adjust this value based on your header/footer height
-                          overflow: "auto", // Make sure overflow is set to auto
+                          minHeight: "100vh", 
+                          maxHeight: "100vh", 
+                          overflow: "auto", 
                         }}
                       />
                     </div>
+                    <ScrollBar orientation="vertical" />
+                    </ScrollArea>
+                    </ResizablePanel>
                   </div>
+                  </ResizablePanelGroup>
                 ) : (
-                  <div className="w-full h-[100vh">
-                    {/* {previewUrl && <iframe style={{height:"100vh", width:"100vw"}} src={previewUrl} /> } */}
-                   <DeployAndDownload files={flatFiles}  setDeployStatus={setDeployStatus} deployStatus={deployStatus} />
+                  <div className="w-full h-[100vh] flex flex-col">
+                    <div className="w-full">
+                    {/* <DeployAndDownload files={flatFiles} /> */}
+                    <SandpackPreview />
+                   
+                    </div>
                   </div>
-                )}
+                )
+                
+                }
               </SandpackLayout>
             </SandpackProvider>
           </div>
         </div>
       </div>
 
-      {/* Custom CSS to enhance scrolling */}
-      <style jsx global>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: #1e1e2e;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #3a3a4a;
-          border-radius: 3px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #4a4a5a;
-        }
-      `}</style>
+      <>
+        <>
+          <style>{`
+            .custom-scrollbar::-webkit-scrollbar {
+              width: 6px;
+            }
+            .custom-scrollbar::-webkit-scrollbar-track {
+              background: #1e1e2e;
+            }
+            .custom-scrollbar::-webkit-scrollbar-thumb {
+              background: #3a3a4a;
+              border-radius: 3px;
+            }
+            .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+              background: #4a4a5a;
+            }
+          `}</style>
+        </>
+      </>
     </div>
   );
 };

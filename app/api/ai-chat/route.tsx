@@ -2,7 +2,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { config } from "dotenv";
 import { NextRequest, NextResponse } from "next/server";
 config();
-const apiKey = process.env.GEMINI_API_KEY as string
+const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY2 as string
 const genAI = new GoogleGenerativeAI(apiKey);
 
 const chatHistory = new Map()
@@ -21,6 +21,7 @@ console.log(prompt)
       responseMimeType: "text/plain",
     };
 
+  
     let chatsession;
     if(chatHistory.has(sessionId)){
       console.log('already have in history')
@@ -32,15 +33,14 @@ console.log(prompt)
         generationConfig:generationConfig,
         history:[]
       })
+     
       chatHistory.set(sessionId,chatsession)
     }
    
-  // const lastMessage = prompt[prompt.length-1].content;
- //  console.log('lastmes:',lastMessage)
     const aiResponse = await chatsession.sendMessage(prompt);
     const responseText =  await aiResponse.response.text();
-
-console.log(responseText)
+   // aiResponse.choices[0].message.content
+    console.log('response:',responseText);
     return NextResponse.json({ result: JSON.stringify(responseText) });
   } catch (error) {
     return NextResponse.json(error);

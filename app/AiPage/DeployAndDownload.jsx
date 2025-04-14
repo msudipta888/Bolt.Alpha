@@ -2,35 +2,10 @@ import { SandpackPreview } from "@codesandbox/sandpack-react";
 import axios from "axios";
 import React, { useState } from "react";
 import {Rotate3DIcon} from 'lucide-react'
-const DeployAndDownload = ({ files,setDeployStatus, deployStatus}) => {
+const DeployAndDownload = ({ files}) => {
   
  const [isDownload,setIsDownload] = useState(false)
 
-  const handleDeploy = async () => {
-    try {
-      setDeployStatus("active");
-    //   setBuildStage("initialization");
-    //   setProgressMessage("Starting deployment process...");
-    //  setDeployLink(null);
-      
-
-      const response = await axios.post("/api/deploy", {
-        files, 
-      });
-
-      const { url, stage, message, status } = response.data;
-      // setDeployLink(url);
-      // setDeployStatus(status || "success");
-      // setProgressMessage(message || "Deployment completed successfully");
-      // setBuildStage(stage || "success");
-      console.log("link:", url);
-      console.log("status:", status);
-    } catch (error) {
-      console.error("Deployment error:", error);
-      setDeployStatus("error");
-      setProgressMessage(error.response?.data?.error || "Deployment failed");
-    }
-  };
 
   const handleDownload = async () => {
     setIsDownload(true)
@@ -108,68 +83,15 @@ const DeployAndDownload = ({ files,setDeployStatus, deployStatus}) => {
             </svg>
             <span className="flex gap-2">Download {isDownload && <Rotate3DIcon className="animate-spin bg-sky-500" size={18}/>}</span>
           </button>
-
-          <button
-            onClick={handleDeploy}
-            disabled={deployStatus === "active"}
-            className={`flex items-center space-x-1.5 text-xs px-3 py-1.5 rounded-md transition-all ${
-              deployStatus === "active"
-                ? "bg-gray-700 text-gray-400 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-700 text-white"
-            }`}
-          >
-            {deployStatus === "active" ? (
-              <>
-                <svg
-                  className="animate-spin h-3 w-3 text-gray-400"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                <span>Deploying...</span>
-              </>
-            ) : (
-              <>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
-                </svg>
-                <span>Deploy</span>
-              </>
-            )}
-          </button>
         </div>
       </div>
-
-      {/* Preview area */}
-      <div className="flex-grow relative">
-        <SandpackPreview
-          style={{ width: "100%", height: "100%", overflowY: "auto" }}
-        />
-      </div>
+     <div>
+      <SandpackPreview 
+      showNavigator={true}
+      showRefreshButton={true}
+      className="w-full h-[100vh] border-none"
+      />
+     </div>
     </div>
   );
 };

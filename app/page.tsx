@@ -8,6 +8,7 @@ import Signup from './sign-up/[[...sign-up]]/page'
 import Signin from './sign-in/[[...sign-in]]/page'
 import { useUser } from '@clerk/nextjs';
 import { ImageContext, profileImage } from "./context/imageContext";
+import Navbar from "./AiPage/Navbar";
 
 export default function Home() {
   const [mes, setMes] = useState<Message[]>([]);
@@ -20,46 +21,25 @@ export default function Home() {
     <div className="h-[100vh] w-[100vw] text-white">
       <div className="container h-[100vh] mx-auto px-5 -pt-3">
         {/* Header with logo */}
-        <header className="flex items-center justify-between mb-8">
-          <div className="flex items-center">
-            <div className="bg-blue-500 p-2 ml-5 mt-2 rounded-lg">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 10V3L4 14h7v7l9-11h-7z"
-                />
-              </svg>
-            </div>
-            <h1 className="text-2xl ml-4 font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500 mt-5">
-              Bolt
-            </h1>
-          </div>
-        </header>
-
+       
+        <Navbar/>
         <main className="h-screen w-[100vw] rounded-xl shadow-xl overflow-hidden relative">
           {
-            !isSignedIn ?<Signin />  
-            : !user ? <Signup /> 
-            : (
+            // !isSignedIn ?<Signin />  
+            // : !user ? <Signup /> 
+            // : (
               <ImageContext.Provider value={{ image, setImage }}>
                 <MessageContext.Provider value={{ mes, setMes }}>
                   <actionContext.Provider value={{ action, setAction }}>
                     <ActiveContext.Provider value={{ active, setActive }}>
+                     
                       <Gemini />
                     </ActiveContext.Provider>
                   </actionContext.Provider>
                 </MessageContext.Provider>
               </ImageContext.Provider>
-            )
-          }
+          //   )
+           }
         </main>
 
         {/* Footer */}
