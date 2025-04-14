@@ -1,13 +1,12 @@
 "use client";
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CODE_GEN_PROMPT, CHAT_PROMPT } from "./prompt";
 import axios from "axios";
 import {
   SandpackProvider,
   SandpackLayout,
-  SandpackCodeEditor,
-  SandpackPreview,
+  SandpackCodeEditor
 } from "@codesandbox/sandpack-react";
 import { SandpackFileExplorer } from "sandpack-file-explorer";
 import { MessageContext, MessageContextType } from "../context/MessageContext";
@@ -17,9 +16,7 @@ import DeployAndDownload from "./DeployAndDownload";
 import { Active, ActiveContext } from "../context/ActiveContext";
 import { Typewriter } from "react-simple-typewriter";
 import { Files } from "./File";
-import { ImageContext } from "../context/imageContext";
 
-//import WebContainerPreview from "./Webcontainer";
 
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { ScrollArea } from "@radix-ui/react-scroll-area";
@@ -621,8 +618,8 @@ const [flatFiles, setFlatFiles] = useState<Record<string, { code: string }> | un
                 ) : (
                   <div className="w-full h-[100vh] flex flex-col">
                     <div className="w-full">
-                    {/* <DeployAndDownload files={flatFiles} /> */}
-                    <SandpackPreview />
+                    <DeployAndDownload files={flatFiles} />
+                    
                    
                     </div>
                   </div>

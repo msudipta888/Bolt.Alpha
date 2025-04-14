@@ -1,8 +1,7 @@
 import Link from 'next/link'
 import React from 'react'
-import Gemini from './Gemini'
 import { SignedOut } from '@clerk/nextjs'
-import { SignedIn, SignInButton, UserButton, useUser } from '@clerk/clerk-react'
+import { SignedIn, SignInButton, UserButton } from '@clerk/clerk-react'
 import { Button } from '@/components/ui/button'
 
 const Navbar = () => {
