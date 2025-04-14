@@ -1,11 +1,12 @@
 import { clerkClient } from "@clerk/nextjs/server";
 import { verifyWebhook } from "@clerk/nextjs/webhooks";
 import { PrismaClient } from "@prisma/client";
+import { NextResponse } from "next/server";
 export async function POST(req: Request) {
   const prisma = new PrismaClient();
   try {
     const evt = await verifyWebhook(req);
-
+     console.log(evt)
     const { id } = evt.data;
     const eventType = evt.type;
     console.log(
@@ -58,7 +59,7 @@ export async function POST(req: Request) {
 
     }
 
-    return new Response("Webhook received", { status: 200 });
+    return new NextResponse("Webhook received", { status: 200 });
   } catch (err) {
     console.error("Error verifying webhook:", err);
     return new Response("Error verifying webhook", { status: 400 });
