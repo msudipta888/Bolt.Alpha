@@ -159,11 +159,17 @@ const [flatFiles, setFlatFiles] = useState<Record<string, { code: string }> | un
     // Clear the input
     setInput("");
   };
-
+  type FileNode = {
+    file?: {
+      contents: string;
+    };
+    directory?: Record<string, FileNode>;
+  };
+  
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
   };
-  function flattenFiles(nested:any, prefix = "") {
+  function flattenFiles(nested:Record<string,FileNode>, prefix = "") {
     const flat: Record<string, { code: string }> = {};
   
     for (const key in nested) {
@@ -171,24 +177,24 @@ const [flatFiles, setFlatFiles] = useState<Record<string, { code: string }> | un
   
       if (item && typeof item === "object" && "file" in item) {
         const filePath = prefix ? `${prefix}/${key}` : key;
-        flat[filePath] = { code: item.file.contents.trim() };
+        flat[filePath] = { code: item.file?.contents.trim() ?? "" };
       }
       
       else if (item && typeof item === "object" && "directory" in item) {
         if (key === "src") {
-          Object.assign(flat, flattenFiles(item.directory, prefix));
+          Object.assign(flat, flattenFiles(item.directory ?? {}, prefix));
         } else {
           const newPrefix = prefix ? `${prefix}/${key}` : key;
-          Object.assign(flat, flattenFiles(item.directory, newPrefix));
+          Object.assign(flat, flattenFiles(item.directory ?? {}, newPrefix));
         }
       }
      
-      else if (item && typeof item === "object") {
+      else if (item && typeof item === "object" && !("file" in item) && !("directory" in item)) {
         if (key === "src") {
-          Object.assign(flat, flattenFiles(item, prefix));
+          Object.assign(flat, flattenFiles(item as Record<string, FileNode>, prefix));
         } else {
           const newPrefix = prefix ? `${prefix}/${key}` : key;
-          Object.assign(flat, flattenFiles(item, newPrefix));
+          Object.assign(flat, flattenFiles(item as Record<string, FileNode>, newPrefix));
         }
       }
     }
