@@ -1,12 +1,12 @@
 import Link from 'next/link'
 import React from 'react'
 import Gemini from './Gemini'
-import { SignedOut, SignUp } from '@clerk/nextjs'
-import { SignedIn, SignIn, SignInButton, SignUpButton, useClerk, UserButton, useUser } from '@clerk/clerk-react'
+import { SignedOut } from '@clerk/nextjs'
+import { SignedIn, SignInButton, UserButton, useUser } from '@clerk/clerk-react'
 import { Button } from '@/components/ui/button'
 
 const Navbar = () => {
-    const {user,isSignedIn} = useUser()
+   
   return (
    <nav className=' shadow-lg'>
     <div className='container mx-auto px-4'>
@@ -37,15 +37,7 @@ const Navbar = () => {
                  </header>
         </Link>
         <div className='flex items-center space-x-4'>
-           {/* {!user && !isSignedIn? (
-            <SignUpButton>
-              <Button className='px-4 py-2 rounded-md border border-b-cyan-900 bg-emerald-400 text-white text-sm transition duration-200 cursor-pointer'>
-                Sign up
-              </Button>
-            </SignUpButton>
-           ): 
-           (
-           <> */}
+          
            <SignedOut>
                 <SignInButton>
                    <Button className='px-4 py-2 rounded-md border border-b-cyan-900 bg-emerald-400 text-white text-sm transition duration-200 cursor-pointer'>
@@ -57,8 +49,7 @@ const Navbar = () => {
             <SignedIn>
                 <UserButton/>
             </SignedIn>
-            {/* </>
-            )} */}
+            
              
         </div>
      </div>

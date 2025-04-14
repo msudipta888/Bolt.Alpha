@@ -1,12 +1,10 @@
 "use client";
-import { useContext, useEffect, useState } from "react";
+import {  useState } from "react";
 import Gemini from "./AiPage/Gemini";
 import { Message, MessageContext } from "./context/MessageContext";
 import { actionContext } from "./context/Action";
 import { ActiveContext } from "./context/ActiveContext";
-import Signup from './sign-up/[[...sign-up]]/page'
-import Signin from './sign-in/[[...sign-in]]/page'
-import { useUser } from '@clerk/nextjs';
+
 import { ImageContext, profileImage } from "./context/imageContext";
 import Navbar from "./AiPage/Navbar";
 
@@ -14,7 +12,6 @@ export default function Home() {
   const [mes, setMes] = useState<Message[]>([]);
   const [action, setAction] = useState("null");
   const [active, setActive] = useState("code");
-  const { isSignedIn, user } = useUser();
   const [image, setImage] = useState<profileImage | string>('');
  
   return (
@@ -24,10 +21,8 @@ export default function Home() {
        
         <Navbar/>
         <main className="h-screen w-[100vw] rounded-xl shadow-xl overflow-hidden relative">
-          {
-            // !isSignedIn ?<Signin />  
-            // : !user ? <Signup /> 
-            // : (
+        
+           
               <ImageContext.Provider value={{ image, setImage }}>
                 <MessageContext.Provider value={{ mes, setMes }}>
                   <actionContext.Provider value={{ action, setAction }}>
@@ -38,8 +33,8 @@ export default function Home() {
                   </actionContext.Provider>
                 </MessageContext.Provider>
               </ImageContext.Provider>
-          //   )
-           }
+         
+           
         </main>
 
         {/* Footer */}

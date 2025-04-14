@@ -8,7 +8,6 @@ import {
   SandpackLayout,
   SandpackCodeEditor,
   SandpackPreview,
-  SandpackTranspiledCode,
 } from "@codesandbox/sandpack-react";
 import { SandpackFileExplorer } from "sandpack-file-explorer";
 import { MessageContext, MessageContextType } from "../context/MessageContext";
@@ -22,7 +21,6 @@ import { ImageContext } from "../context/imageContext";
 
 //import WebContainerPreview from "./Webcontainer";
 
-import { useClerk, UserButton } from "@clerk/nextjs";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { ScrollArea } from "@radix-ui/react-scroll-area";
 import { ScrollBar } from "@/components/ui/scroll-area";
@@ -39,18 +37,9 @@ const Gemini = () => {
   const [sessionId, setSessionId] = useState("");
   const { active, setActive } = useContext(ActiveContext) as Active;
   const [isExpanded, setIsExpanded] = useState(false);
-  const [deployStatus, setDeployStatus] = useState("");
-  const [deployStage, setDeployStage] = useState("");
-  const [deployMessage, setDeployMessage] = useState("");
-  const [deployLink, setDeployLink] = useState("");
-  const { image, setImage } = useContext(ImageContext);
-  const [isSidebarVisible, setIsSidebarVisible] = useState(false);
-  //const [webContainer, setWebContainer] = useState<WebContainer | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  
 const [flatFiles, setFlatFiles] = useState<Record<string, { code: string }> | undefined>(undefined);
- // const user = useClerk();
-
-  // Generate a session ID when the component mounts
+ 
   useEffect(() => {
     setSessionId(uuidv4());
   }, []);
@@ -108,20 +97,7 @@ const [flatFiles, setFlatFiles] = useState<Record<string, { code: string }> | un
       setLoader(false);
     }
   };
-  // useEffect(() => {
-  //   if (user) {
-  //     setImage({
-  //       url: user.user?.imageUrl || "",
-  //       alt: user.user?.fullName || "",
-  //     });
-  //    const userdetail = async()=>{
-  //     await axios.post("/api/user",{
-  //       user
-  //     })
-  //    }
-  //    userdetail();
-  //   }
-  // }, []);
+ 
   const generateCode = async () => {
     setLoader(true);
     try {
@@ -388,14 +364,7 @@ const [flatFiles, setFlatFiles] = useState<Record<string, { code: string }> | un
           </div>
 
           <div className="p-4 border-t border-gray-800 bg-gray-900/60 flex">
-            {/* <div
-              className={`relative ${
-                isSidebarVisible
-                  ? "translate-x-0 h-[100vh] w-[300px] bg-blue-600"
-                  : "-translate-x-full"
-              } mt-28 ml-4`}
-            >
-            </div> */}
+           
 
             <div className="w-full">
               <textarea
