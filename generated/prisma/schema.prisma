@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  firstName String
+  lastName  String
+  image     String
+  chat      Chat[]
+  createdAt DateTime @default(now())
+}
+
+model Chat {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   Message[]
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model Message {
+  id          String       @id @default(cuid())
+  chatId      String
+  chat        Chat         @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  userChat    UserChat[]
+  aiChat      AiChat[]
+  fileReader  FileReader[]
+  createdTime DateTime     @default(now())
+
+  @@index([id, createdTime])
+}
+
+model UserChat {
+  id         String  @id @default(cuid())
+  userChatId String
+  message    Message @relation(fields: [userChatId], references: [id], onDelete: Cascade)
+  content    String
+}
+
+model AiChat {
+  id       String  @id @default(cuid())
+  AiChatId String
+  message  Message @relation(fields: [AiChatId], references: [id], onDelete: Cascade)
+  content  String
+}
+
+model FileReader {
+  id        String   @id @default(cuid())
+  fileId    String
+  message   Message  @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  path      String[]
+  fileName  String
+  fullPath  String
+  content   Json
+  fileType  String?
+  createdAt DateTime @default(now())
+
+  @@index([fileId])
+  @@index([fullPath])
+}

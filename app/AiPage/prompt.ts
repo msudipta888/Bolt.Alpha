@@ -7,72 +7,37 @@ export const CHAT_PROMPT = `
 `;
 
 export const CODE_GEN_PROMPT = `
-'Generate a Project in React. Create multiple components, organizing them in separate folders with filenames using the .js extension, if needed. The output should use Tailwind CSS for styling, 
-without any third-party dependencies or libraries, except for icons from the lucide-react library, which should only be used when necessary. Available icons include: Heart, Shield, Clock, Users, Play, Home, Search, Menu, User, Settings, Mail, Bell, Calendar, Star, Upload, Download, Trash, Edit, Plus, Minus, Check, X, and ArrowRight. For example, you can import an icon as import { Heart } from "lucide-react" and use it in JSX as <Heart className="" />.
-also you can use date-fns for date format and react-chartjs-2 chart, graph library
-
-Return the response in JSON format with the following schema:
-{
-  "projectTitle": "",
-  "explanation": "",
-  "files": {
-      "src":{
-    directory :{
-         "App.js": {
-           file: {
-          contents: "",
-          },
+  You are an expert React developer. Generate a complete, production-ready React project using Vite context.
+  
+  GUIDELINES:
+  - Use React with functional components and Hooks.
+  - Use Tailwind CSS for all styling.
+  - Use "lucide-react" for icons. Example: import { Heart } from "lucide-react";
+  - Use "framer-motion" for smooth animations and transitions.
+  - Use "clsx" and "tailwind-merge" for conditional class names.
+  - Use "date-fns" for date formatting if needed.
+  - Use "react-chartjs-2" and "chart.js" for charts if needed.
+  - DO NOT generate a "package.json" file unless you need to install NEW dependencies that are not in the standard list (React, Tailwind, Lucide, Framer Motion, clsx, tailwind-merge, date-fns, Chart.js).
+  - If you DO generate a "package.json", ensure it is a valid JSON and includes ONLY the extra dependencies you need.
+  - Organize components in a clear folder structure (e.g., /components, /hooks).
+  - Filenames should use .js or .jsx extension.
+  - Do not use a "/src" folder. Root files should be at the top level (e.g., /App.js).
+  - Use placeholder images from https://archive.org/download/placeholder-image/placeholder-image.jpg or unsplash source URLs.
+  - Construct a beautiful, premium, and fully featured user interface using modern design principles (gradients, glassmorphism, proper spacing).
+  
+  RESPONSE FORMAT:
+  Return strictly valid JSON with this schema:
+  {
+    "files": {
+      "/App.js": {
+        "code": "..."
       },
-}
-},
-    ...
-  },
-  "generatedFiles": []
-}
-
-Here’s the reformatted and improved version of your prompt:
-
-Generate a programming code structure for a React project using Vite. Create multiple components, organizing them in separate folders with filenames using the .js extension, if needed. The output should use Tailwind CSS for styling, without any third-party dependencies or libraries, except for icons from the lucide-react library, which should only be used when necessary. Available icons include: Heart, Shield, Clock, Users, Play, Home, Search, Menu, User, Settings, Mail, Bell, Calendar, Star, Upload, Download, Trash, Edit, Plus, Minus, Check, X, and ArrowRight. For example, you can import an icon as import { Heart } from "lucide-react" and use it in JSX as <Heart className="" />.
-
-Return the response in JSON format with the following schema:
-
-json
-Copy code
-{
-  "projectTitle": "",
-  "explanation": "",
-  "files": {
-    "src":{
-       directory :{
-         "App.js": {
-           file: {
-            contents: "",
-            },
-        },
+      "/components/Header.js": {
+        "code": "..."
       }
     },
-    ...
-    },
-  "generatedFiles": []
-}
-Ensure the files field contains all created files, and the generatedFiles field lists all the filenames. Each file's code should be included in the code field, following this example:
-files:{
-  "/App.js": {
-    "code": "import React from 'react';\nimport './styles.css';\nexport default function App() {\n  return (\n    <div className='p-4 bg-gray-100 text-center'>\n      <h1 className='text-2xl font-bold text-blue-500'>Hello, Tailwind CSS with Sandpack!</h1>\n      <p className='mt-2 text-gray-700'>This is a live code editor.</p>\n    </div>\n  );\n}"
+    "generatedFiles": ["/App.js", "/components/Header.js"]
   }
-} 
-  And don't give any "/src" folder
-  Additionally, include an explanation of the project's structure, purpose, and functionality in the explanation field. Make the response concise and clear in one paragraph.
-  - When asked then only use this package to import, here are some packages available to import and use (date-fns,react-chartjs-2,"firebase","@google/generative-ai" ) only when it required
-  
-  - For placeholder images, please use a https://archive.org/download/placeholder-image/placeholder-image.jpg
-  -Add Emoji icons whenever needed to give good user experinence
-  - all designs I ask you to make, have them be beautiful, not cookie cutter. Make webpages that are fully featured and worthy for production.
+  `;
 
-- By default, this template supports JSX syntax with Tailwind CSS classes, React hooks, and Lucide React for icons. Do not install other packages for UI themes, icons, etc unless absolutely necessary or I request them.
-
-- Use icons from lucide-react for logos.
-
-- Use stock photos from unsplash where appropriate, only valid URLs you know exist. Do not download the images, only link to them in image tags.'
-   `;
 

@@ -1,34 +1,74 @@
-
-
 generator client {
   provider = "prisma-client-js"
+  output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+ model User{
+   id String @id @default(cuid())
+   email String @unique
+   firstName String 
+   lastName  String
+   image    String
+   chat  Chat[]
+   createdAt  DateTime  @default(now())
+ }
 
-model User {
-  id      Int     @id @default(autoincrement())
-  firstName    String
-  lastName     String
-  email   String  @unique
-  password Boolean 
-  image    String
-  userChats  userchat[]
-  aiChat     Aichat[]
+model Chat {
+  id      String       @id @default(cuid())
+  userId  String       
+  user    User         @relation(fields:[userId], references:[id],onDelete: Cascade)
+  title   String
+  message Message[]
+  createdAt DateTime @default(now())
+  @@index([userId])
+  @@index([id])
 }
 
-model  userchat {
-  userId  Int   @unique // Scalar field for relation
-  user    User   @relation(fields: [userId], references: [id])
-  chat    String[] 
-  createdAt  DateTime    @default(now())
+
+model Message {
+  id          String       @id @default(cuid())
+  chatId      String
+  chat        Chat         @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  userChat    UserChat[]
+  aiChat      AiChat[]
+  fileReader  FileReader[]
+  createdTime DateTime     @default(now())
+
+  @@index([chatId])
+  @@index([id,createdTime])
 }
-model Aichat {
-  userid    Int  @unique
-  user  User  @relation(fields: [userid], references: [id])
-  chat     String[]
-  createdAt  DateTime   @default(now())
+
+model UserChat {
+  id         String  @id @default(cuid())
+  userChatId String   
+  message    Message @relation(fields: [userChatId], references: [id], onDelete: Cascade)
+  content    String
+  @@index([userChatId])
+}
+
+model AiChat {
+  id       String  @id @default(cuid())
+  AiChatId String  
+  message  Message @relation(fields: [AiChatId], references: [id], onDelete: Cascade)
+  content  String
+  @@index([AiChatId])
+}
+
+model FileReader {
+  id        String   @id @default(cuid())
+  fileId    String
+  message   Message  @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  path      String[]
+  fileName  String
+  fullPath  String   
+  content   Json
+  fileType  String?  
+  createdAt DateTime @default(now())
+
+  @@index([fileId])
+  @@index([fullPath]) 
 }
