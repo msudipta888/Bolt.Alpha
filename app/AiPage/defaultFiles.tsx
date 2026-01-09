@@ -85,6 +85,77 @@ export default function App() {
 `
   }
   ,
+  "/components/ui.js": {
+    code: `
+import React from "react";
+import { motion } from "framer-motion";
+import { clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+export function cn(...inputs) {
+  return twMerge(clsx(inputs));
+}
+
+export const Card = ({ children, className, delay = 0 }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay }}
+    className={cn(
+      "bg-zinc-900/50 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-xl hover:border-blue-500/30 transition-colors",
+      className
+    )}
+  >
+    {children}
+  </motion.div>
+);
+
+export const Button = ({ children, className, variant = "primary", ...props }) => {
+  const variants = {
+    primary: "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20",
+    outline: "bg-white/5 hover:bg-white/10 border border-white/10 text-white",
+    ghost: "hover:bg-white/5 text-zinc-400 hover:text-white"
+  };
+  
+  return (
+    <motion.button
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      className={cn(
+        "px-4 py-2 rounded-xl font-medium transition-all flex items-center justify-center gap-2",
+        variants[variant],
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </motion.button>
+  );
+};
+
+export const Input = ({ className, ...props }) => (
+  <input
+    className={cn(
+      "w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all",
+      className
+    )}
+    {...props}
+  />
+);
+
+export const Badge = ({ children, className }) => (
+  <span className={cn("px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20", className)}>
+    {children}
+  </span>
+);
+
+export const GradientText = ({ children, className }) => (
+  <span className={cn("text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-zinc-500", className)}>
+    {children}
+  </span>
+);
+`
+  },
   "/App.css": {
     code: `
   @tailwind base;
@@ -92,8 +163,28 @@ export default function App() {
   @tailwind utilities;
   
   body {
-    background: #0f172a;
-  }`
+    background: #09090b;
+    color: #fafafa;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Custom Premium Utilities */
+  .glass {
+    background: rgba(24, 24, 27, 0.4);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .text-gradient {
+    background: linear-gradient(to right, #fff, #71717a);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .glow-blue {
+    box-shadow: 0 0 20px -5px rgba(59, 130, 246, 0.5);
+  }
+`
   },
 
   "/package.json": {
@@ -119,7 +210,14 @@ export default function App() {
       "react-chartjs-2": "^5.3.0",
       "chart.js": "^4.4.1",
       "framer-motion": "^11.0.0",
-      "clsx": "^2.1.0"
+      "clsx": "^2.1.0",
+      "sonner": "^1.4.0",
+      "class-variance-authority": "^0.7.0",
+      "@radix-ui/react-slot": "^1.0.2",
+      "@radix-ui/react-dialog": "^1.0.5",
+      "@radix-ui/react-dropdown-menu": "^2.0.6",
+      "@radix-ui/react-tooltip": "^1.0.7",
+      "@radix-ui/react-tabs": "^1.0.4"
     }
   }`
   }
