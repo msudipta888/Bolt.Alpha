@@ -19,11 +19,13 @@ import {
     User,
     Bot,
     Zap,
+    AlertCircle,
 } from "lucide-react";
 import { useParams, useSearchParams } from "next/navigation";
 import Sidebar from "@/app/AiPage/Sidebar";
 import { DefaultChatTransport } from "ai";
 import { VersionCard } from "@/app/AiPage/VersionCard";
+import { toast } from "sonner";
 
 
 const Gemini = () => {
@@ -47,16 +49,71 @@ const Gemini = () => {
     const hasGeneratedInitialCode = useRef(false);
     const toggleExpand = () => setIsExpanded(!isExpanded);
     const messageIdRef = useRef<string>("");
-    console.log('sessionId:', sessionId)
     const [isTitleClick, setIsTitleClick] = useState(true);
 
     const lastFetchedId = useRef<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const hasErrorOccurred = useRef(false);
+    const lastInputRef = useRef<string>("");
+
     const { messages, sendMessage, setMessages } = useChat({
         transport: new DefaultChatTransport({
             api: "/api/ai-chat"
         }),
+        onError: (error) => {
+            setLoader(false);
+            setError(error.message);
+            hasErrorOccurred.current = true;
+            if (lastInputRef.current) {
+                setInput(lastInputRef.current);
+            }
+
+            setMessages(prev => {
+                const updated = [...prev];
+                if (updated.length > 0 && updated[updated.length - 1].role === 'user') {
+                    updated.pop();
+                }
+                return updated;
+            });
+
+            setMes((prev: any) => {
+                const updated = [...prev];
+                if (updated.length > 0 && updated[updated.length - 1].role === 'user') {
+                    updated.pop();
+                }
+                return updated;
+            });
+
+            if (error.message?.includes("429") || error.message?.toLowerCase().includes("rate limit")) {
+
+                toast.error("Rate Limit Exceeded", {
+                    description: "You've sent too many requests. Please wait a moment before trying again.",
+                });
+            } else if (error.message?.toLowerCase().includes("authentication") || error.message?.toLowerCase().includes("sign in")) {
+                toast.error("Authentication Error", {
+                    description: "Please sign in again to continue.",
+                });
+            } else if (error.message?.toLowerCase().includes("session")) {
+                toast.error("Session Error", {
+                    description: "Your session has expired. Please refresh the page.",
+                });
+            } else {
+                toast.error("Error", {
+                    description: error.message || "An unexpected error occurred. Please try again.",
+                });
+            }
+        },
         onFinish: async (response) => {
             try {
+                if (hasErrorOccurred.current) {
+                    console.log("Skipping onFinish due to previous error");
+                    hasErrorOccurred.current = false;
+                    return;
+                }
+
+                setError(null);
+                lastInputRef.current = "";
+
                 const textContent = response.message.parts
                     .filter((part: any) => part.type === "text")
                     .map((part: any) => part.text);
@@ -82,8 +139,12 @@ const Gemini = () => {
                 });
 
                 await generateCode(responseText);
-            } catch (error) {
+            } catch (error: any) {
                 console.error("Error processing AI response:", error);
+                setError(error.message);
+                toast.error("Processing Error", {
+                    description: "Failed to process the AI response. Please try again.",
+                });
                 setMes((prev: any) => [
                     ...prev,
                     { role: "ai", content: ["Sorry, I encountered an error."] }
@@ -107,6 +168,7 @@ const Gemini = () => {
             return content;
         }
     };
+
 
     const fetchHistory = async () => {
         if (lastFetchedId.current === sessionId) return;
@@ -160,6 +222,9 @@ const Gemini = () => {
                 console.log('History fetch cancelled:', error);
             } else {
                 console.error("Error fetching chat history:", error);
+                toast.error("Failed to Load History", {
+                    description: "Could not load chat history. Please try again.",
+                });
             }
         } finally {
             setLoader(false);
@@ -185,38 +250,6 @@ const Gemini = () => {
             load();
         }
     }, [sessionId, isTitleClick, isNewChat]);
-
-    const mergeFiles = (prevFiles: any, newFiles: any) => {
-        const merged = { ...prevFiles, ...newFiles };
-
-        if (newFiles['/package.json'] && prevFiles['/package.json']) {
-            try {
-                const prevPackage = JSON.parse(prevFiles['/package.json'].code);
-                const newPackage = JSON.parse(newFiles['/package.json'].code);
-
-                const mergedPackage = {
-                    ...prevPackage,
-                    ...newPackage,
-                    dependencies: {
-                        ...prevPackage.dependencies,
-                        ...newPackage.dependencies
-                    },
-                    devDependencies: {
-                        ...prevPackage.devDependencies,
-                        ...newPackage.devDependencies
-                    }
-                };
-
-                merged['/package.json'] = {
-                    code: JSON.stringify(mergedPackage, null, 2)
-                };
-            } catch (e) {
-                console.error("Error merging package.json", e);
-            }
-        }
-        return merged;
-    };
-
     const generateCode = async (aiResponse?: string) => {
         try {
             setFileLoader(true);
@@ -238,7 +271,7 @@ const Gemini = () => {
                         const res = await axios.get(`/api/get-files/${messageIdRef.current}`);
                         if (res.data.files && Object.keys(res.data.files).length > 0) {
                             clearInterval(pollInterval);
-                            setFiles((prev: any) => mergeFiles(prev, res.data.files));
+                            setFiles((prev: any) => ({ ...prev, ...res.data.files }));
                             setFileLoader(false);
                         }
                     } catch (error) {
@@ -252,12 +285,15 @@ const Gemini = () => {
                 }, 2000);
             } else if (response.data.data) {
                 const data = response.data.data;
-                setFiles((prev: any) => mergeFiles(prev, data.files));
+                setFiles((prev: any) => ({ ...prev, ...data.files }));
                 setFileLoader(false);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error generating code with Gemini:", error);
             setFileLoader(false);
+            toast.error("Code Generation Failed", {
+                description: error.message || "Failed to generate code. Please try again.",
+            });
         }
     };
 
@@ -269,8 +305,10 @@ const Gemini = () => {
             hasGeneratedInitialCode.current = true;
             setRefreshTrigger(lastMessage.content.join("\n").trim());
             setLoader(true);
+            hasErrorOccurred.current = false;
             const messageId = uuidv4();
             messageIdRef.current = messageId;
+            lastInputRef.current = lastMessage.content.join("\n");
 
             sendMessage({
                 id: messageId,
@@ -299,8 +337,11 @@ const Gemini = () => {
                 setLoader(true);
                 setMes(prev => [...prev, { role: "user", content: [input] }]);
                 setRefreshTrigger(input.trim());
+                hasErrorOccurred.current = false;
                 const messageId = uuidv4();
                 messageIdRef.current = messageId;
+                lastInputRef.current = input.trim();
+
                 sendMessage({
                     id: messageId,
                     parts: [{
@@ -396,6 +437,21 @@ const Gemini = () => {
 
 
                             <div className="p-3  ">
+                                {error && (
+                                    <div className="mb-3 p-3 rounded bg-red-900/20 border border-red-500/50 flex items-start gap-2">
+                                        <AlertCircle size={16} className="text-red-400 mt-0.5 flex-shrink-0" />
+                                        <div className="flex-1">
+                                            <p className="text-sm text-red-200">{error}</p>
+                                        </div>
+                                        <button
+                                            onClick={() => setError(null)}
+                                            className="text-red-400 hover:text-red-300 flex-shrink-0"
+                                        >
+                                            <span className="sr-only">Dismiss</span>
+                                            ×
+                                        </button>
+                                    </div>
+                                )}
                                 <div className="w-full">
                                     <textarea
                                         value={input}
@@ -414,8 +470,10 @@ const Gemini = () => {
                                             onClick={() => {
                                                 setLoader(true);
                                                 setRefreshTrigger(input.trim());
+                                                hasErrorOccurred.current = false;
                                                 const messageId = uuidv4();
                                                 messageIdRef.current = messageId;
+                                                lastInputRef.current = input.trim();
                                                 sendMessage({
                                                     id: messageId,
                                                     role: "user",

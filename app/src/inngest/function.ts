@@ -3,11 +3,14 @@ import "dotenv/config";
 import { prismaClient } from "@/app/api/prismaClient/Prisma";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { CODE_GEN_PROMPT } from "@/app/AiPage/prompt";
+import { file as defaultFiles } from "@/app/AiPage/defaultFiles";
 
 const apiKeys = [
     process.env.GOOGLE_GENERATIVE_AI_API_KEY!,
     process.env.GOOGLE_GENERATIVE_AI_API_KEY2!,
-    process.env.GOOGLE_GENERATIVE_AI_API_KEY3!
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY3!,
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY4!,
+
 ].filter(Boolean);
 
 let currentKeyIndex = 0;
@@ -103,65 +106,6 @@ const chatStoreInDb = inngest.createFunction(
     }
 );
 
-// const saveCodeInDb = inngest.createFunction(
-//     { id: "save-to-db", concurrency: 2 },
-//     { event: "save/db" },
-//     async ({ event, step }) => {
-//         const { sessionId, messageId, userId, files, generatedFiles } = event.data;
-//         await step.run("save-to-db", async () => {
-//             if (!sessionId || !files || !generatedFiles) {
-//                 throw new Error("SessionId, Files or GeneratedFiles is missing");
-//             }
-//             // Ensure Message exists
-//             await prismaClient.message.upsert({
-//                 where: { id: messageId },
-//                 update: {},
-//                 create: {
-//                     id: messageId,
-//                     chat: {
-//                         connectOrCreate: {
-//                             where: { id: sessionId },
-//                             create: { id: sessionId, userId, title: "New Chat" }
-//                         }
-//                     }
-//                 }
-//             });
-
-//             const alreadyHasFiles = await prismaClient.fileReader.findFirst({
-//                 where: { fileId: messageId },
-//                 select: { id: true }
-//             });
-//             if (alreadyHasFiles) {
-//                 console.log("Files already saved for messageId:", messageId);
-//                 return;
-//             }
-
-//             const fileEntries = Object.entries(files as Record<string, any>);
-//             const fileDataArray = fileEntries.map(([filePath, fileData]) => {
-//                 const pathParts = filePath.split("/").filter(Boolean);
-//                 const fileName = pathParts[pathParts.length - 1] ?? "index";
-//                 const pathArray = pathParts.slice(0, -1);
-//                 const fileType = fileName.includes(".") ? fileName.split(".").pop() : null;
-//                 return {
-//                     fileId: messageId,
-//                     path: pathArray.length > 0 ? pathArray : ["/"],
-//                     fileName,
-//                     fullPath: filePath,
-//                     fileType,
-//                     content: fileData
-//                 };
-//             });
-
-//             const batches = chunk(fileDataArray, 50);
-//             for (const b of batches) {
-//                 await prismaClient.fileReader.createMany({ data: b, skipDuplicates: true });
-//             }
-//             console.log("=== Successfully saved to DB ===");
-//             return { status: "success" };
-//         });
-//         return { status: "completed" };
-//     }
-// );
 
 const generateCodeInQueue = inngest.createFunction(
     { id: "generate-code-queue", concurrency: 1, retries: 5 },
@@ -175,9 +119,12 @@ const generateCodeInQueue = inngest.createFunction(
                     model: "gemini-2.5-flash",
                     generationConfig: { responseMimeType: "application/json" }
                 });
+
+                const projectContext = JSON.stringify(defaultFiles, null, 2);
+
                 const result = await model.generateContent({
-                    systemInstruction: CODE_GEN_PROMPT,
-                    contents: [{ role: "user", parts: [{ text: JSON.stringify(prompt) }] }]
+                    systemInstruction: `${CODE_GEN_PROMPT}\n\nCURRENT PROJECT CONTEXT (DEFAULT FILES):\n${projectContext}`,
+                    contents: [{ role: "user", parts: [{ text: `User Request: ${prompt}` }] }]
                 });
                 const text = result.response?.candidates?.[0]?.content?.parts?.[0]?.text;
                 if (!text) throw new Error("Empty AI response");
@@ -186,12 +133,6 @@ const generateCodeInQueue = inngest.createFunction(
         });
 
         const parsedData = await step.run("parse-json", async () => JSON.parse(resultText));
-        // await step.run("save-files-to-db", async () => {
-        //     await inngest.send({
-        //         name: "save/db",
-        //         data: { sessionId, messageId, userId, files: parsedData.files, generatedFiles: parsedData.generatedFiles }
-        //     });
-        // });
         const { files, generatedFiles } = parsedData;
         await step.run("save-to-db", async () => {
             if (!sessionId || !files || !generatedFiles) {
@@ -210,6 +151,13 @@ const generateCodeInQueue = inngest.createFunction(
                     }
                 }
             });
+
+            Object.keys(defaultFiles).forEach(filePath => {
+                if (!files[filePath]) {
+                    files[filePath] = (defaultFiles as any)[filePath].code;
+                }
+            });
+
             const fileEntries = Object.entries(files as Record<string, any>);
             const fileDataArray = fileEntries.map(([filePath, fileData]) => {
                 const pathParts = filePath.split("/").filter(Boolean);

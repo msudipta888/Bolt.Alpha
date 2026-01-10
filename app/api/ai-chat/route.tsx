@@ -13,7 +13,6 @@ export async function POST(req: NextRequest) {
   try {
     console.log("req come")
     const body = await req.json();
-    console.log("API received body:", JSON.stringify(body, null, 2));
     const { messages, sessionId } = body;
 
     const lastMessage = messages[messages.length - 1];
@@ -23,11 +22,27 @@ export async function POST(req: NextRequest) {
     if (!messages) throw new Error("messages is missing");
     if (!messageId) throw new Error("messageId is missing");
     const { userId } = await auth();
-    console.log('Final messageId being used:', messageId)
     if (!userId) {
       console.error("Authentication failed: No user ID");
       throw new Error("User ID is null or undefined");
     }
+
+
+    const { aj } = await import("@/lib/arcjet");
+    const decision = await aj.protect(req,
+      {
+        userId,
+        requested: 2
+      }
+    )
+    console.log(decision.conclusion)
+    if (decision.isDenied()) {
+      return NextResponse.json(
+        { error: "Rate limit exceeded. Please wait a moment before trying again." },
+        { status: 429 },
+      );
+    }
+    console.log(decision.isAllowed)
 
 
     const chatsession = streamText({
@@ -53,8 +68,32 @@ export async function POST(req: NextRequest) {
     return chatsession.toUIMessageStreamResponse();
   } catch (error: any) {
     console.error("AI Chat API error:", error);
+
+    if (error.message?.includes("SessionId is missing")) {
+      return NextResponse.json(
+        { error: "Session ID is missing. Please refresh the page." },
+        { status: 400 }
+      );
+    }
+
+    if (error.message?.includes("messageId is missing")) {
+      return NextResponse.json(
+        { error: "Message ID is missing. Please try again." },
+        { status: 400 }
+      );
+    }
+
+    if (error.message?.includes("User ID is null or undefined")) {
+      return NextResponse.json(
+        { error: "Authentication failed. Please sign in again." },
+        { status: 401 }
+      );
+    }
+
+
     return NextResponse.json(
-      { error: error.message || "An unknown error occurred" }
+      { error: error.message || "An unknown error occurred. Please try again." },
+      { status: 500 }
     );
   }
 }
