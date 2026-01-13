@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prismaClient } from "../../prismaClient/Prisma";
+import { getFiles } from "@/app/redis/redis-type";
 
 export async function GET(req: Request, { params }: { params: { messageId: string } }) {
     try {
@@ -11,7 +12,12 @@ export async function GET(req: Request, { params }: { params: { messageId: strin
         if (!userId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
-
+        const file = await getFiles(messageId);
+        if (file) {
+            console.log('get file from redis')
+            return NextResponse.json({ files: file })
+        }
+        console.log('can not get file from redis')
         const message = await prismaClient.message.findUnique({
             where: { id: cleanMessageId },
             include: {
@@ -31,7 +37,6 @@ export async function GET(req: Request, { params }: { params: { messageId: strin
             return NextResponse.json({ error: "Message not found" }, { status: 404 });
         }
 
-        // Security check: Ensure user owns this chat
         if (message.chat.userId !== userId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
         }

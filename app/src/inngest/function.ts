@@ -4,6 +4,7 @@ import { prismaClient } from "@/app/api/prismaClient/Prisma";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { CODE_GEN_PROMPT } from "@/app/AiPage/prompt";
 import { file as defaultFiles } from "@/app/AiPage/defaultFiles";
+import { setAllTitle, storeChatHistory, storeCodeFiles, storeFiles } from "@/app/redis/redis-type";
 
 const apiKeys = [
     process.env.GOOGLE_GENERATIVE_AI_API_KEY!,
@@ -42,6 +43,23 @@ const chunk = <T,>(arr: T[], size = 50): T[][] => {
     return out;
 };
 
+const sanitizeJsonText = (text: string): string => {
+    try {
+        JSON.parse(text);
+        return text;
+    } catch {
+
+        let cleaned = text.replace(/^```json\s*\n?/i, '').replace(/\n?```\s*$/i, '');
+        try {
+            JSON.parse(cleaned);
+            return cleaned;
+        } catch {
+            console.warn('[sanitizeJsonText] Unable to sanitize JSON automatically');
+            return text;
+        }
+    }
+};
+
 const storeChatTitle = inngest.createFunction(
     { id: "chat-title-store", retries: 2 },
     { event: "chat/title.store" },
@@ -50,6 +68,7 @@ const storeChatTitle = inngest.createFunction(
         if (!sessionId || !userId || !title) {
             throw new Error("Missing chat title data");
         }
+        await setAllTitle(userId, sessionId, title);
         await prismaClient.chat.upsert({
             where: { id: sessionId },
             update: { title: { set: title } },
@@ -82,7 +101,7 @@ const chatStoreInDb = inngest.createFunction(
                         ? aiContent
                         : JSON.stringify(aiContent)
                     : "";
-
+            await storeChatHistory(sessionId, messageId, userMessageContent, aiMessageContent);
             await prismaClient.message.upsert({
                 where: { id: messageId },
                 update: {},
@@ -128,11 +147,37 @@ const generateCodeInQueue = inngest.createFunction(
                 });
                 const text = result.response?.candidates?.[0]?.content?.parts?.[0]?.text;
                 if (!text) throw new Error("Empty AI response");
+
+                console.log(`[generate-ai-code] Response length: ${text.length} chars`);
+                console.log(`[generate-ai-code] Response preview: ${text.substring(0, 200)}...`);
+
                 return text;
             });
         });
 
-        const parsedData = await step.run("parse-json", async () => JSON.parse(resultText));
+        const parsedData = await step.run("parse-json", async () => {
+            try {
+                const sanitized = sanitizeJsonText(resultText);
+                const parsed = JSON.parse(sanitized);
+
+                // Validate the expected structure
+                if (!parsed.files || !parsed.generatedFiles) {
+                    console.error('[parse-json] Missing required fields:', {
+                        hasFiles: !!parsed.files,
+                        hasGeneratedFiles: !!parsed.generatedFiles
+                    });
+                    throw new Error("Response missing 'files' or 'generatedFiles' fields");
+                }
+
+                return parsed;
+            } catch (err) {
+                console.error('[parse-json] Failed to parse AI response:');
+                console.error('Error:', err instanceof Error ? err.message : String(err));
+                console.error('Response preview (first 500 chars):', resultText.substring(0, 500));
+                console.error('Response length:', resultText.length);
+                throw new Error(`JSON parsing failed: ${err instanceof Error ? err.message : String(err)}`);
+            }
+        });
         const { files, generatedFiles } = parsedData;
         await step.run("save-to-db", async () => {
             if (!sessionId || !files || !generatedFiles) {
@@ -176,9 +221,22 @@ const generateCodeInQueue = inngest.createFunction(
 
             const batches = chunk(fileDataArray, 50);
             for (const b of batches) {
+
                 await prismaClient.fileReader.createMany({ data: b, skipDuplicates: true });
             }
             console.log("=== Successfully saved to DB ===");
+            const fileContent = fileDataArray.map((v) => {
+                return {
+                    path: v.fullPath,
+                    content: v.content
+                }
+            })
+            if (fileContent.length > 0) {
+                await storeCodeFiles(sessionId, fileContent);
+                await storeFiles(messageId, fileContent)
+            }
+            console.log("=== Successfully cached files in Redis ===");
+
             return { status: "success" };
         });
 

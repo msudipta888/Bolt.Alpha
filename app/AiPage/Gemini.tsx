@@ -2,9 +2,11 @@
 import React, { useState, useContext } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { Typewriter } from "react-simple-typewriter";
-import { Send, Loader, Zap, Sparkles, Rocket } from "lucide-react";
+import { Send, Loader, Zap, Sparkles, Rocket, Code2, Cpu, Layers } from "lucide-react";
 import { MessageContext } from "../context/MessageContext";
 import { useRouter } from "next/navigation";
+import galaxyBg from "../../public/assests/earth.jpg";
+import Image from "next/image";
 const ChatInterface = () => {
   // State management
   const [input, setInput] = useState("");
@@ -60,156 +62,157 @@ const ChatInterface = () => {
     }
   };
 
-
-
+  const features = [
+    { icon: Code2, title: "Smart Coding", desc: "AI-powered solutions" },
+    { icon: Cpu, title: "Fast Processing", desc: "Instant responses" },
+    { icon: Layers, title: "Modern UI Design", desc: "Beautiful and user-friendly" }
+  ];
 
   return (
-    <div className="relative flex flex-col items-center justify-center min-h-screen overflow-hidden bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900 p-4">
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-violet-500/5 rounded-full blur-3xl"></div>
+    <div className="relative flex items-center justify-center min-h-screen overflow-hidden">
+      <div className="absolute inset-0">
+        <Image
+          src={galaxyBg}
+          alt="Galaxy Background"
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-black/30"></div>
       </div>
 
       {error && (
-        <div className="relative z-10 w-full max-w-3xl mb-6 bg-red-500/10 backdrop-blur-xl border border-red-500/20 text-red-200 p-5 rounded-2xl shadow-2xl animate-in fade-in slide-in-from-top duration-300">
-          <div className="flex items-start gap-3">
-            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center mt-0.5">
-              <span className="text-red-400">!</span>
-            </div>
+        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-2xl px-4">
+          <div className="bg-red-500/10 backdrop-blur-md border border-red-400/40 text-white p-4 rounded-xl shadow-2xl flex items-start gap-3 animate-in slide-in-from-top duration-500">
+            <div className="flex-shrink-0 w-6 h-6 rounded-full bg-red-500 flex items-center justify-center text-white text-sm font-bold">!</div>
             <div className="flex-1">
-              <h3 className="font-semibold mb-1">Error Detected</h3>
-              <p className="text-sm text-red-300/80">{error}</p>
+              <h3 className="font-semibold text-red-100 mb-1">Error</h3>
+              <p className="text-sm text-red-200/90">{error}</p>
             </div>
           </div>
         </div>
       )}
 
-      <div className="relative z-10 w-full max-w-4xl">
-        <div className="relative bg-white/5 backdrop-blur-2xl rounded-3xl shadow-2xl overflow-hidden border border-white/10">
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 via-blue-500/20 to-violet-500/20 rounded-3xl blur-xl"></div>
+      <div className="relative z-10 w-full max-w-6xl px-4 py-8">
+        {/* Header Section */}
+        <div className="text-center mb-8 animate-in fade-in slide-in-from-top duration-700">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-white/10 backdrop-blur-md border border-white/20 mb-6 shadow-2xl">
+            <Sparkles className="w-10 h-10 text-white animate-pulse" />
+          </div>
+          <h1 className="text-6xl md:text-7xl font-bold text-white mb-4 tracking-tight">
+            Bolt AI
+          </h1>
+          <p className="text-xl text-white/80 font-light mb-8">
+            Powered by Gemini • Your Cosmic Code Companion
+          </p>
 
-          <div className="relative bg-gradient-to-r from-purple-600/20 via-blue-600/20 to-violet-600/20 backdrop-blur-xl px-8 py-5 flex items-center justify-between border-b border-white/10">
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-blue-500 rounded-2xl blur-lg opacity-50"></div>
-                <div className="relative h-12 w-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-2xl flex items-center justify-center shadow-lg">
-                  <Sparkles size={24} className="text-white" />
-                </div>
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-200 via-blue-200 to-violet-200 bg-clip-text text-transparent">
-                  Bolt AI
-                </h1>
-                <p className="text-xs text-purple-300/70">Powered by Gemini</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-              <span className="text-xs text-purple-200/80">Ready to assist</span>
-            </div>
+          {/* Animated Typewriter */}
+          <div className="min-h-[40px] mb-8">
+            <p className="text-2xl md:text-3xl font-medium text-white/90">
+              <Typewriter
+                words={[
+                  "Transform ideas into reality...",
+                  "Build stunning applications...",
+                  "Code smarter, ship faster...",
+                  "Your vision, our intelligence...",
+                ]}
+                loop={0}
+                cursor
+                cursorStyle="_"
+                typeSpeed={80}
+                deleteSpeed={60}
+                delaySpeed={2000}
+              />
+            </p>
           </div>
 
-          <div className="relative p-8 h-[500px] overflow-y-auto custom-scrollbar">
-            <div className="text-center mt-4 mb-8">
-              <div className="inline-flex p-4 rounded-3xl mb-6 bg-gradient-to-br from-purple-500/20 to-blue-500/20 backdrop-blur-xl border border-white/10 shadow-2xl">
-                <Rocket size={48} className="text-purple-300" />
+          {/* Feature Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10 max-w-4xl mx-auto">
+            {features.map((feature, idx) => (
+              <div
+                key={idx}
+                className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 hover:bg-white/10 hover:border-white/20 transition-all duration-300 hover:scale-105 hover:shadow-2xl group"
+              >
+                <feature.icon className="w-8 h-8 text-white mb-3 group-hover:scale-110 transition-transform" />
+                <h3 className="text-white font-semibold text-lg mb-1">{feature.title}</h3>
+                <p className="text-white/60 text-sm">{feature.desc}</p>
               </div>
-              <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-purple-200 via-blue-200 to-violet-200 bg-clip-text text-transparent">
-                Welcome to Bolt AI
-              </h2>
-              <p className="text-purple-200/70 text-lg mb-8 max-w-2xl mx-auto leading-relaxed">
-                Your intelligent coding companion. Describe your vision, and watch as I transform your ideas into production-ready code instantly.
-              </p>
-
-              <div className="mb-10 min-h-[60px] flex items-center justify-center">
-                <div className="text-2xl font-medium bg-gradient-to-r from-purple-300 to-blue-300 bg-clip-text text-transparent">
-                  <Typewriter
-                    words={[
-                      "Build web apps faster.",
-                      "Get instant code solutions.",
-                      "Learn as you build.",
-                      "Bring your ideas to life.",
-                    ]}
-                    loop={0}
-                    cursor
-                    cursorStyle="|"
-                    typeSpeed={70}
-                    deleteSpeed={50}
-                    delaySpeed={1500}
-                  />
-                </div>
-              </div>
-            </div>
-
-
+            ))}
           </div>
+        </div>
 
-          <div className="relative border-t border-white/10 p-6 bg-gradient-to-b from-transparent to-black/20">
+        {/* Main Input Card */}
+        <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom duration-700">
+          <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl shadow-[0_8px_32px_0_rgba(255,255,255,0.1)] overflow-hidden">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 handleSubmit(input);
               }}
-              className="relative"
             >
-              <div className="relative group">
-
+              <div className="relative">
                 <textarea
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Describe what you want to build..."
-                  className="w-full bg-white/10 backdrop-blur-xl text-purple-100 placeholder-purple-300/40 rounded-2xl p-5 pr-20 resize-none focus:outline-none focus:ring-2 focus:ring-purple-400/50 focus:bg-white/15 min-h-[120px] border border-white/10 transition-all duration-300 shadow-lg"
+                  placeholder="Describe your vision... What would you like to build today?"
+                  className="w-full bg-transparent text-white placeholder-white/40 p-8 pr-32 resize-none focus:outline-none min-h-[180px] text-lg"
                   disabled={loading}
                 />
-                <div className="absolute bottom-4 right-4 flex items-center gap-3">
-                  <span
-                    className={`text-xs font-medium ${input.length > 500 ? "text-red-400" : "text-purple-300/60"
-                      }`}
-                  >
-                    {input.length}/1000
-                  </span>
+
+                {/* Character Count & Submit Button */}
+                <div className="absolute bottom-6 right-6 flex items-center gap-4">
+                  <div className="flex items-center gap-3 bg-black/20 backdrop-blur-sm px-4 py-2 rounded-full border border-white/10">
+                    <span className={`text-sm font-medium ${input.length > 900 ? "text-red-300" : "text-white/60"}`}>
+                      {input.length}/1000
+                    </span>
+                  </div>
                   <button
                     type="submit"
                     disabled={loading || !input.trim()}
-                    className={`relative p-3 rounded-xl transition-all duration-300 ${!input.trim() || loading
-                      ? "bg-white/5 text-purple-400/40 cursor-not-allowed"
-                      : "bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white shadow-lg hover:shadow-purple-500/50 hover:scale-110"
+                    className={`relative group p-4 rounded-full transition-all duration-300 ${!input.trim() || loading
+                      ? "bg-white/10 text-white/30 cursor-not-allowed"
+                      : "bg-gradient-to-r from-purple-500 to-blue-500 text-white hover:from-purple-600 hover:to-blue-600 hover:scale-110 shadow-lg hover:shadow-purple-500/50"
                       }`}
                   >
                     {loading ? (
-                      <Loader className="animate-spin h-5 w-5" />
+                      <Loader className="w-6 h-6 animate-spin" />
                     ) : (
-                      <Send size={18} />
+                      <Send className="w-6 h-6" />
                     )}
                   </button>
                 </div>
               </div>
             </form>
-          </div>
-        </div>
 
-        {/* Bottom info */}
-        <p className="text-center text-purple-300/40 text-sm mt-6 flex items-center justify-center gap-2">
-          <Zap size={14} />
-          Your session will begin once you submit your first message
-        </p>
+            {/* Bottom Bar */}
+            <div className="border-t border-white/10 bg-white/5 px-8 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-white/50 text-sm">
+                <Zap className="w-4 h-4 text-yellow-400" />
+                <span>Press Enter to send • Shift+Enter for new line</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                <span className="text-white/50 text-sm">Online</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Info Text */}
+          <p className="text-center text-white/40 text-sm mt-6 font-light">
+            Your conversation will begin once you submit your first message
+          </p>
+        </div>
       </div>
 
+      {/* Loading Toast */}
       {loading && (
         <div className="fixed bottom-8 right-8 z-50 animate-in slide-in-from-bottom duration-300">
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-blue-500 rounded-2xl blur-xl opacity-50"></div>
-            <div className="relative bg-gradient-to-r from-purple-600 to-blue-600 backdrop-blur-xl text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 border border-white/20">
-              <div className="relative">
-                <Loader className="animate-spin h-6 w-6" />
-                <div className="absolute inset-0 bg-white/20 rounded-full blur-md"></div>
-              </div>
-              <div>
-                <p className="font-semibold">Building your project</p>
-                <p className="text-xs text-purple-100/80">Generating code and UI...</p>
-              </div>
+          <div className="bg-gradient-to-r from-purple-600 to-blue-600 backdrop-blur-xl text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 border border-white/20">
+            <div className="relative">
+              <Loader className="w-6 h-6 animate-spin" />
+            </div>
+            <div>
+              <p className="font-semibold">Processing...</p>
+              <p className="text-sm text-white/80">Generating your code</p>
             </div>
           </div>
         </div>

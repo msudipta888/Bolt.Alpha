@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect, useRef } from 'react'
-import { Menu, X, Plus, MessageSquare, Loader2 } from 'lucide-react'
+import { Menu, X, Plus, MessageSquare, Loader2, Sparkles } from 'lucide-react'
 import { v4 as uuidv4 } from 'uuid'
 import { file } from './defaultFiles'
 import axios from 'axios'
@@ -153,111 +153,151 @@ export default function Sidebar({
   return (
     <div className="flex h-screen z-50 relative">
       <div
-        className={`text-white shadow-lg transition-all duration-300 ease-in-out bg-gray-900 ${isOpen ? 'w-64' : 'w-16'
-          } ${isMobile && isOpen ? 'absolute transform -translate-x-full' : ''} h-full flex flex-col border-r border-gray-800`}
+        className={`bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 backdrop-blur-xl shadow-2xl transition-all duration-500 ease-in-out ${isOpen ? 'w-72' : 'w-16'
+          } ${isMobile && isOpen ? 'absolute left-0 top-0' : ''
+          } h-full flex flex-col border-r border-slate-700/50 relative overflow-hidden`}
       >
-        <div className="flex items-center justify-between p-4 border-b border-gray-800">
-          <h2
-            className={`font-bold text-xl transition-opacity duration-200 ${isOpen ? 'opacity-100' : 'opacity-0 hidden'
-              }`}
-          >
-            Dashboard
-          </h2>
+        <div className="absolute inset-0 bg-gradient-to-b from-blue-500/5 via-transparent to-purple-500/5 pointer-events-none" />
+
+        {/* Header */}
+        <div className="relative flex items-center justify-between p-5 border-b border-slate-700/50 backdrop-blur-sm bg-slate-800/30">
+          <div className={`flex items-center gap-3 transition-all duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 hidden'}`}>
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+              <Sparkles size={18} className="text-white" />
+            </div>
+            <h2 className="font-bold text-lg bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
+              Projects
+            </h2>
+          </div>
           <button
             onClick={toggleSidebar}
-            className="p-1 rounded-md hover:bg-gray-800 transition-colors"
+            className="p-2 rounded-lg hover:bg-slate-700/50 transition-all duration-200 text-slate-300 hover:text-white hover:scale-105 active:scale-95 relative z-10"
           >
             {isOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
 
         {isOpen && (
-          <div className="p-4 flex flex-col space-y-4">
+          <div className="relative p-4 animate-fadeIn">
             <button
               onClick={handleNewProject}
-              className="bg-blue-600 text-white text-sm font-medium rounded-lg px-4 py-2 flex items-center justify-center shadow-md hover:bg-blue-700 transition-all duration-300 w-full"
+              className="group relative w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-medium rounded-xl px-4 py-3 flex items-center justify-center shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] overflow-hidden"
             >
-              <Plus size={16} className="mr-2" /> New Project
+              <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+              <Plus size={18} className="mr-2 relative z-10" />
+              <span className="relative z-10">New Project</span>
             </button>
           </div>
         )}
 
         {isOpen && (
-          <div className="flex-1 overflow-y-auto custom-scrollbar px-2 py-2">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-2">Projects</h3>
-            <div className="space-y-1">
+          <div className="relative flex-1 overflow-y-auto custom-scrollbar px-3 py-2 animate-fadeIn">
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 px-2">
+              Recent
+            </h3>
+            <div className="space-y-1.5">
               {isLoading ? (
-                <div className="flex items-center justify-center p-4">
-                  <Loader2 size={20} className="animate-spin text-blue-400" />
-                  <span className="ml-2 text-sm text-gray-400">Loading chats...</span>
+                <div className="flex flex-col items-center justify-center p-8 gap-3">
+                  <div className="relative">
+                    <Loader2 size={24} className="animate-spin text-blue-400" />
+                    <div className="absolute inset-0 animate-ping">
+                      <Loader2 size={24} className="text-blue-400 opacity-20" />
+                    </div>
+                  </div>
+                  <span className="text-sm text-slate-400">Loading projects...</span>
                 </div>
               ) : error ? (
-                <div className="px-2 py-2">
-                  <p className="text-sm text-red-400">{error}</p>
+                <div className="px-3 py-4 bg-red-500/10 border border-red-500/20 rounded-xl">
+                  <p className="text-sm text-red-400 mb-2">{error}</p>
                   <button
                     onClick={fetchChats}
-                    className="mt-2 text-xs text-blue-400 hover:text-blue-300 underline"
+                    className="text-xs text-blue-400 hover:text-blue-300 underline underline-offset-2 transition-colors"
                   >
                     Retry
                   </button>
                 </div>
               ) : items.length > 0 ? (
-                items.map((chat) => (
+                items.map((chat, index) => (
                   <div
                     key={chat.id}
-                    className="group flex items-center p-2 text-gray-300 rounded-md text-sm cursor-pointer hover:bg-gray-800 hover:text-white transition-colors"
+                    className="group relative flex items-center p-3 text-slate-300 rounded-xl text-sm cursor-pointer hover:bg-slate-700/40 active:bg-slate-700/60 transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/5 animate-fadeIn border border-transparent hover:border-slate-600/50"
                     onClick={() => handleSelect(chat.id)}
+                    style={{ animationDelay: `${index * 50}ms` }}
                   >
-                    <MessageSquare size={16} className="mr-3 text-gray-500 group-hover:text-blue-400" />
-                    <span className="truncate">{chat.title || "Untitled Project"}</span>
+                    <div className="mr-3 p-1.5 rounded-lg bg-slate-700/50 group-hover:bg-blue-500/20 transition-all duration-200">
+                      <MessageSquare size={16} className="text-slate-400 group-hover:text-blue-400 transition-colors duration-200" />
+                    </div>
+                    <span className="truncate flex-1 group-hover:text-white transition-colors duration-200">
+                      {chat.title || "Untitled Project"}
+                    </span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-blue-500/5 to-purple-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl pointer-events-none" />
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-gray-500 px-2 italic">No projects yet.</p>
+                <div className="flex flex-col items-center justify-center p-8 text-center">
+                  <div className="w-12 h-12 rounded-full bg-slate-700/30 flex items-center justify-center mb-3">
+                    <MessageSquare size={20} className="text-slate-500" />
+                  </div>
+                  <p className="text-sm text-slate-500 italic">No projects yet.</p>
+                  <p className="text-xs text-slate-600 mt-1">Create one to get started</p>
+                </div>
               )}
             </div>
           </div>
         )}
 
         {isOpen && (
-          <div className="p-4 border-t border-gray-800">
+          <div className="relative p-4 mb-6 border-t border-slate-700/50 backdrop-blur-sm bg-slate-800/30 animate-fadeIn">
             <div className="flex items-center justify-between">
               <SignedIn>
-                <UserButton showName={true} />
+                <div className="flex items-center gap-3 w-full">
+                  <UserButton
+                    showName={true}
+                    appearance={{
+                      elements: {
+                        userButtonAvatarBox: "w-9 h-9 ring-2 ring-blue-500/20",
+                        userButtonOuterIdentifier: "text-slate-200"
+                      }
+                    }}
+                  />
+                </div>
               </SignedIn>
             </div>
           </div>
         )}
       </div>
 
+      {/* Mobile Overlay */}
       {isMobile && isOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-10"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-10 animate-fadeIn"
           onClick={toggleSidebar}
         />
       )}
+
+      {/* Mobile Toggle Button */}
       {isMobile && !isOpen && (
         <button
           onClick={toggleSidebar}
-          className="fixed top-4 left-4 z-20 text-white p-2 rounded-md shadow-lg bg-gray-900 hover:bg-gray-800 transition-colors"
+          className="fixed top-4 left-4 z-20 text-white p-3 rounded-xl shadow-2xl bg-gradient-to-br from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 transition-all duration-300 border border-slate-700/50 hover:scale-105 active:scale-95 backdrop-blur-xl"
         >
-          <Menu size={24} />
+          <Menu size={20} />
         </button>
       )}
 
       <style jsx global>{`
           .custom-scrollbar::-webkit-scrollbar {
-            width: 4px;
+            width: 6px;
           }
           .custom-scrollbar::-webkit-scrollbar-track {
             background: transparent;
           }
           .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #4b5563;
-            border-radius: 2px;
+            background: linear-gradient(to bottom, #475569, #334155);
+            border-radius: 10px;
           }
-           .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #6b7280;
+          .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(to bottom, #64748b, #475569);
           }
           
           @keyframes fadeIn {
@@ -272,7 +312,18 @@ export default function Sidebar({
           }
           
           .animate-fadeIn {
-            animation: fadeIn 0.3s ease-out forwards;
+            animation: fadeIn 0.4s ease-out forwards;
+          }
+
+          @keyframes slideIn {
+            from {
+              opacity: 0;
+              transform: translateX(-20px);
+            }
+            to {
+              opacity: 1;
+              transform: translateX(0);
+            }
           }
         `}</style>
     </div>

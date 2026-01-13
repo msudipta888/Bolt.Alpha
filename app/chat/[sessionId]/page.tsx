@@ -20,6 +20,7 @@ import {
     Bot,
     Zap,
     AlertCircle,
+    Sparkles,
 } from "lucide-react";
 import { useParams, useSearchParams } from "next/navigation";
 import Sidebar from "@/app/AiPage/Sidebar";
@@ -362,56 +363,79 @@ const Gemini = () => {
 
 
     return (
-        <div
-            className={`h-screen  right-4 w-screen overflow-y-hidden`}
-        >
+        <div className="h-screen w-screen overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
             <div className="h-full w-full flex flex-col">
-
-
-                <div className="flex h-[calc(100vh-40px)] w-full overflow-y-hidden relative">
-                    <div className=" text-white top-0">
-                        <Sidebar refreshTrigger={refreshTrigger} setMes={setMes} setFiles={setFiles} setInput={setInput} input={input} sessionId={sessionId} setRefreshTrigger={setRefreshTrigger} setIsTitleClick={setIsTitleClick} />
+                <div className="flex h-[100vh] w-full overflow-hidden relative">
+                    <div className="text-white">
+                        <Sidebar
+                            refreshTrigger={refreshTrigger}
+                            setMes={setMes}
+                            setFiles={setFiles}
+                            setInput={setInput}
+                            input={input}
+                            sessionId={sessionId}
+                            setRefreshTrigger={setRefreshTrigger}
+                            setIsTitleClick={setIsTitleClick}
+                        />
                     </div>
+
                     {!isExpanded && (
-                        <div className="h-full flex flex-col border-r border-gray-700  w-[450px]">
-                            <div className="flex-grow overflow-y-auto p-3 custom-scrollbar">
+                        <div className="h-full flex flex-col border-r border-slate-700/50 backdrop-blur-sm bg-slate-900/50 w-[450px] shadow-2xl">
+                            <div className="px-4 py-3 border-b border-slate-700/50 bg-gradient-to-r from-slate-800/80 to-slate-900/80 backdrop-blur">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+                                        <Sparkles size={16} className="text-white" />
+                                    </div>
+                                    <div>
+                                        <h2 className="font-semibold text-sm text-white">Bolt Assistant</h2>
+                                        <p className="text-xs text-slate-400">AI-Powered Development</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex-grow overflow-y-auto p-4 custom-scrollbar space-y-3">
                                 {messages.length > 0 ? (
                                     messages.map((message) => (
-                                        <div key={message.id}>
+                                        <div key={message.id} className="animate-fadeIn">
                                             {message.parts
                                                 .filter((part: any) => part.type === "text")
                                                 .map((part: any, partIndex: number) => (
                                                     <div
                                                         key={`${message.id}-${partIndex}`}
-                                                        className={`p-3 rounded mb-2 ${message.role === "user"
-                                                            ? "bg-gray-700 border-l-2 border-blue-500"
-                                                            : "bg-gray-800 border-l-2 border-purple-500"
+                                                        className={`group relative p-4 rounded-xl mb-3 transition-all duration-300 hover:shadow-lg ${message.role === "user"
+                                                            ? "bg-gradient-to-br from-blue-600/20 to-blue-700/10 border border-blue-500/30 hover:border-blue-400/50"
+                                                            : "bg-gradient-to-br from-purple-600/20 to-purple-700/10 border border-purple-500/30 hover:border-purple-400/50"
                                                             }`}
                                                     >
-                                                        <div className="flex items-center mb-1">
+                                                        <div className="flex items-center mb-3">
                                                             <div
-                                                                className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${message.role === "user"
-                                                                    ? "bg-blue-500"
-                                                                    : "bg-purple-500"
+                                                                className={`w-7 h-7 rounded-lg flex items-center justify-center shadow-md ${message.role === "user"
+                                                                    ? "bg-gradient-to-br from-blue-500 to-blue-600"
+                                                                    : "bg-gradient-to-br from-purple-500 to-purple-600"
                                                                     }`}
                                                             >
                                                                 {message.role === "user" ? (
-                                                                    <User size={12} />
+                                                                    <User size={14} className="text-white" />
                                                                 ) : (
-                                                                    <Bot size={12} />
+                                                                    <Bot size={14} className="text-white" />
                                                                 )}
                                                             </div>
-                                                            <h3 className="font-medium ml-2 text-xs">
+                                                            <h3 className="font-semibold ml-2.5 text-sm text-white">
                                                                 {message.role === "user" ? "You" : "Bolt.alpha"}
                                                             </h3>
+                                                            <div className={`ml-auto text-xs px-2 py-0.5 rounded-full ${message.role === "user"
+                                                                ? "bg-blue-500/20 text-blue-300"
+                                                                : "bg-purple-500/20 text-purple-300"
+                                                                }`}>
+                                                                {message.role === "user" ? "User" : "AI"}
+                                                            </div>
                                                         </div>
 
-                                                        <div className="ml-6 text-gray-300 text-sm">
+                                                        <div className="ml-9 text-slate-200 text-sm leading-relaxed prose prose-invert prose-sm max-w-none">
                                                             <ReactMarkdown>{part.text}</ReactMarkdown>
                                                             {message.role === "assistant" && (
                                                                 <VersionCard
-                                                                    messageId={
-                                                                        message.id}
+                                                                    messageId={message.id}
                                                                     setFiles={setFiles}
                                                                 />
                                                             )}
@@ -421,51 +445,56 @@ const Gemini = () => {
                                         </div>
                                     ))
                                 ) : (
-                                    <div className="text-center text-gray-300 mt-6 p-4">
-                                        <div className="inline-block p-2 rounded-full mb-3 bg-gray-600">
-                                            <Zap size={20} className="text-blue-400" />
+                                    <div className="flex items-center justify-center h-full">
+                                        <div className="text-center text-slate-300 p-8 max-w-md">
+                                            <div className="inline-flex p-4 rounded-2xl mb-4 bg-gradient-to-br from-blue-500/20 to-purple-600/20 backdrop-blur shadow-xl border border-slate-700/50">
+                                                <Zap size={32} className="text-blue-400" />
+                                            </div>
+                                            <h3 className="text-xl font-bold mb-2 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                                                Welcome to Bolt
+                                            </h3>
+                                            <p className="text-slate-400 text-sm leading-relaxed">
+                                                Start by describing the application you want to build. I'll help you bring your ideas to life with code.
+                                            </p>
                                         </div>
-                                        <p className="text-lg font-semibold mb-2 text-gray-300">
-                                            Welcome to Bolt
-                                        </p>
-                                        <p className="mb-4 text-gray-400 text-sm">
-                                            Start by describing the application you want to build
-                                        </p>
                                     </div>
                                 )}
                             </div>
 
-
-                            <div className="p-3  ">
+                            <div className="p-4 border-t border-slate-700/50 bg-gradient-to-r from-slate-800/80 to-slate-900/80 backdrop-blur">
                                 {error && (
-                                    <div className="mb-3 p-3 rounded bg-red-900/20 border border-red-500/50 flex items-start gap-2">
-                                        <AlertCircle size={16} className="text-red-400 mt-0.5 flex-shrink-0" />
+                                    <div className="mb-3 p-3 rounded-lg bg-red-500/10 border border-red-500/30 flex items-start gap-3 animate-slideIn backdrop-blur">
+                                        <AlertCircle size={18} className="text-red-400 mt-0.5 flex-shrink-0" />
                                         <div className="flex-1">
-                                            <p className="text-sm text-red-200">{error}</p>
+                                            <p className="text-sm text-red-200 leading-relaxed">{error}</p>
                                         </div>
                                         <button
                                             onClick={() => setError(null)}
-                                            className="text-red-400 hover:text-red-300 flex-shrink-0"
+                                            className="text-red-400 hover:text-red-300 transition-colors flex-shrink-0 text-lg font-bold"
                                         >
-                                            <span className="sr-only">Dismiss</span>
                                             ×
                                         </button>
                                     </div>
                                 )}
                                 <div className="w-full">
-                                    <textarea
-                                        value={input}
-                                        onChange={handleChange}
-                                        onKeyDown={handleKeyDown}
-                                        placeholder="How can Bolt help you today?"
-                                        className=" border  rounded p-2 mb-2 text-gray-200 min-h-20 w-full focus:outline-none resize-none text-sm"
-                                    />
-                                    <div className="flex justify-between items-center">
-                                        <span
-                                            className={`text-xs ${input.length > 500 ? "text-red-400" : "text-gray-500"}`}
-                                        >
-                                            {input.length}/1000
-                                        </span>
+                                    <div className="relative">
+                                        <textarea
+                                            value={input}
+                                            onChange={handleChange}
+                                            onKeyDown={handleKeyDown}
+                                            placeholder="How can Bolt help you today?"
+                                            className="w-full bg-slate-800/50 border border-slate-600/50 rounded-xl p-3 pr-12 text-slate-200 min-h-[80px] focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 resize-none text-sm placeholder:text-slate-500 transition-all duration-200 backdrop-blur"
+                                        />
+                                        <div className="absolute bottom-2 right-2 flex items-center gap-2">
+                                            <span
+                                                className={`text-xs font-medium ${input.length > 500 ? "text-red-400" : "text-slate-500"
+                                                    }`}
+                                            >
+                                                {input.length}/1000
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-end items-center mt-3">
                                         <button
                                             onClick={() => {
                                                 setLoader(true);
@@ -489,23 +518,22 @@ const Gemini = () => {
                                                     }
                                                 );
                                                 setInput("")
-
                                             }}
-                                            className={`flex items-center px-3 py-1 rounded ${!input.trim() || loader
-                                                ? "bg-gray-600 text-gray-400 cursor-not-allowed"
-                                                : "bg-blue-600 hover:bg-blue-700 text-white"
+                                            className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 ${!input.trim() || loader
+                                                ? "bg-slate-700/50 text-slate-500 cursor-not-allowed"
+                                                : "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transform hover:scale-105"
                                                 }`}
                                             disabled={loader || !input.trim()}
                                         >
                                             {loader ? (
-                                                <div className="flex items-center">
-                                                    <Loader className="animate-spin mr-1 h-3 w-3" />
-                                                    <span className="text-xs">Processing</span>
-                                                </div>
+                                                <>
+                                                    <Loader className="animate-spin h-4 w-4" />
+                                                    <span>Processing</span>
+                                                </>
                                             ) : (
                                                 <>
-                                                    <span className="text-xs">Send</span>
-                                                    <Send size={12} className="ml-1" />
+                                                    <span>Send</span>
+                                                    <Send size={14} />
                                                 </>
                                             )}
                                         </button>
@@ -514,92 +542,154 @@ const Gemini = () => {
                             </div>
                         </div>
                     )}
+
                     <div
-                        className="h-full flex flex-col "
-                        style={{ width: isExpanded ? "100%" : "66.666%", padding: "2px", right: "2px", marginRight: "4.5px", }}
+                        className="h-full flex flex-col relative"
+                        style={{ width: isExpanded ? "100%" : "66.666%", padding: "2px", right: "2px", marginRight: "4.5px" }}
                     >
-                        <div className="relative flex-grow">
+                        <div className="relative flex-grow flex flex-col h-full bg-slate-900/30 backdrop-blur rounded-l-xl overflow-hidden border border-slate-700/30">
                             {fileLoader && (
-                                <div className="absolute inset-0  backdrop-blur-sm bg-opacity-50 z-10" />
+                                <>
+                                    <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-md z-10 transition-all duration-300" />
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center z-20 gap-3">
+                                        <Loader className="animate-spin h-10 w-10 text-blue-500" />
+                                        <p className="text-slate-300 text-sm font-medium">Generating code...</p>
+                                    </div>
+                                </>
                             )}
 
-                            {fileLoader && (
-                                <div className="absolute inset-0 flex items-center justify-center z-20">
-                                    <Loader className="animate-spin h-8 w-8 text-blue-500" size={35} />
-                                </div>
-                            )}
-                            <div className=" px-3 py-1 flex items-center justify-between ">
-                                <div className="flex  rounded p-0.5">
+                            <div className="px-4 py-3 flex items-center justify-between border-b border-slate-700/50 bg-slate-800/50 backdrop-blur">
+                                <div className="flex gap-1 bg-slate-800/80 rounded-lg p-1 shadow-inner">
                                     <button
                                         onClick={() => setActive("code")}
-                                        className={`px-3 py-1 rounded text-xs font-medium ${active === "code"
-                                            ? "bg-blue-600 text-white"
-                                            : "text-gray-400 hover:text-gray-300"
+                                        className={`px-4 py-2 rounded-md text-xs font-semibold transition-all duration-200 flex items-center gap-2 ${active === "code"
+                                            ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/25"
+                                            : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/50"
                                             }`}
                                     >
-                                        <div className="flex items-center">
-                                            <Code size={12} className="mr-1" />
-                                            Code
-                                        </div>
+                                        <Code size={14} />
+                                        <span>Code</span>
                                     </button>
                                     <button
                                         onClick={() => setActive("preview")}
-                                        className={`px-3 py-1 rounded text-xs font-medium ${active === "preview"
-                                            ? "bg-blue-600 text-white"
-                                            : "text-gray-400 hover:text-gray-300"
+                                        className={`px-4 py-2 rounded-md text-xs font-semibold transition-all duration-200 flex items-center gap-2 ${active === "preview"
+                                            ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/25"
+                                            : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/50"
                                             }`}
                                     >
-                                        <div className="flex items-center">
-                                            <Monitor size={12} className="mr-1" />
-                                            Preview
-                                        </div>
+                                        <Monitor size={14} />
+                                        <span>Preview</span>
                                     </button>
                                 </div>
 
                                 <button
                                     onClick={toggleExpand}
-                                    className="bg-gray-700 hover:bg-blue-400 text-gray-300 text-xs px-2 py-1 rounded flex items-center h-8 cursor-pointer right-2.5 mr-5"
+                                    className="bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 hover:text-white text-xs px-4 py-2 rounded-lg flex items-center gap-2 transition-all duration-200 font-medium border border-slate-600/30 hover:border-slate-500/50 shadow-md hover:shadow-lg"
                                 >
                                     {isExpanded ? (
                                         <>
-                                            <PanelLeftClose size={12} className="mr-1" />
-                                            Show Chat
+                                            <PanelLeftClose size={14} />
+                                            <span>Show Chat</span>
                                         </>
                                     ) : (
                                         <>
-                                            <PanelRightClose size={12} className="ml-1" />
-                                            Expand
+                                            <PanelRightClose size={14} />
+                                            <span>Expand</span>
                                         </>
                                     )}
                                 </button>
                             </div>
 
-                            <div className="flex-grow relative h-full overflow-hidden mr-4">
+                            <div className="flex-grow relative h-[100vh] overflow-hidden">
                                 <Sandpack active={active} files={files} />
                             </div>
                         </div>
                     </div>
                 </div>
 
-
                 <style jsx global>{`
-          .custom-scrollbar::-webkit-scrollbar {
-            width: 4px;
-          }
-          .custom-scrollbar::-webkit-scrollbar-track {
-            background: #2d2d3a;
-          }
-          .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #3a3a4a;
-            border-radius: 2px;
-          }
-        `}</style>
+                    .custom-scrollbar::-webkit-scrollbar {
+                        width: 6px;
+                    }
+                    .custom-scrollbar::-webkit-scrollbar-track {
+                        background: rgba(30, 41, 59, 0.3);
+                        border-radius: 3px;
+                    }
+                    .custom-scrollbar::-webkit-scrollbar-thumb {
+                        background: rgba(71, 85, 105, 0.5);
+                        border-radius: 3px;
+                        transition: background 0.2s;
+                    }
+                    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                        background: rgba(71, 85, 105, 0.8);
+                    }
+                    
+                    @keyframes fadeIn {
+                        from {
+                            opacity: 0;
+                            transform: translateY(10px);
+                        }
+                        to {
+                            opacity: 1;
+                            transform: translateY(0);
+                        }
+                    }
+                    
+                    @keyframes slideIn {
+                        from {
+                            opacity: 0;
+                            transform: translateY(-10px);
+                        }
+                        to {
+                            opacity: 1;
+                            transform: translateY(0);
+                        }
+                    }
+                    
+                    .animate-fadeIn {
+                        animation: fadeIn 0.3s ease-out;
+                    }
+                    
+                    .animate-slideIn {
+                        animation: slideIn 0.3s ease-out;
+                    }
+                    
+                    /* Markdown Styles */
+                    .prose-invert {
+                        color: rgb(226, 232, 240);
+                    }
+                    
+                    .prose-invert code {
+                        background: rgba(51, 65, 85, 0.5);
+                        padding: 2px 6px;
+                        border-radius: 4px;
+                        font-size: 0.875em;
+                        color: rgb(147, 197, 253);
+                    }
+                    
+                    .prose-invert pre {
+                        background: rgba(30, 41, 59, 0.5);
+                        border: 1px solid rgba(71, 85, 105, 0.3);
+                        border-radius: 8px;
+                        padding: 12px;
+                        overflow-x: auto;
+                    }
+                    
+                    .prose-invert a {
+                        color: rgb(96, 165, 250);
+                        text-decoration: none;
+                    }
+                    
+                    .prose-invert a:hover {
+                        color: rgb(147, 197, 253);
+                        text-decoration: underline;
+                    }
+                `}</style>
 
-                {/* Loading notification - simplified */}
                 {loader && (
-                    <div className="fixed bottom-2 right-2 bg-blue-600 text-white px-3 py-2 rounded shadow-lg flex items-center z-50 text-sm">
-                        <Loader className="animate-spin mr-2 h-4 w-4" />
-                        <span>Processing...</span>
+                    <div className="fixed bottom-4 right-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-3 rounded-xl shadow-2xl shadow-blue-500/50 flex items-center gap-3 z-50 border border-blue-400/30 backdrop-blur animate-slideIn">
+                        <Loader className="animate-spin h-5 w-5" />
+                        <span className="font-medium">Processing your request...</span>
                     </div>
                 )}
             </div>

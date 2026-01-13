@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prismaClient } from "../../prismaClient/Prisma";
+import { getChatHistory, getLatestCodeFiles } from "@/app/redis/redis-type";
 
 export async function GET(req: Request, { params }: { params: { sessionId: string } }) {
     try {
@@ -21,6 +22,37 @@ export async function GET(req: Request, { params }: { params: { sessionId: strin
             return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
         }
 
+        const chatHistory = await getChatHistory(sessionId);
+        const lastFiles = await getLatestCodeFiles(sessionId);
+
+        if (chatHistory && chatHistory.length > 0) {
+            console.log("[CACHE_HIT] Returning from Redis cache");
+
+            const transformedHistory = chatHistory.map((item: any, index: number) => {
+                const isLastMessage = index === chatHistory.length - 1;
+
+                let fileReader: { fullPath: string; content: string }[] = [];
+                if (isLastMessage && lastFiles && Array.isArray(lastFiles)) {
+                    fileReader = lastFiles.map((f: any) => ({
+                        fullPath: f.path,
+                        content: f.content
+                    }));
+                }
+
+                return {
+                    id: item.messageId,
+                    userChat: item.userChat ? [{ content: item.userChat }] : [],
+                    aiChat: item.aiChat ? [{ content: item.aiChat }] : [],
+                    fileReader
+                };
+            });
+            console.log('get from redis')
+            return NextResponse.json({
+                message: transformedHistory
+            });
+        }
+
+        console.log("[CACHE_MISS] Falling back to database");
         const messages = await prismaClient.message.findMany({
             where: {
                 chatId: sessionId

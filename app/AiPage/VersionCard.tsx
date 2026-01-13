@@ -9,6 +9,7 @@ export const VersionCard = ({ messageId, setFiles }: { messageId: string, setFil
     const handleLoadVersion = async () => {
         setLoading(true);
         try {
+            console.log('messageId:', messageId)
             const res = await axios.get(`/api/get-files/${messageId}`);
             if (res.data.files) {
                 setFiles(res.data.files);

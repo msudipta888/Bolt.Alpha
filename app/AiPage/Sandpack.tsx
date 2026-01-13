@@ -26,9 +26,9 @@ const VIEW_MODES: {
   maxW: string;
   maxH: string;
 }[] = [
-    { key: "desktop", icon: Laptop, label: "Desktop", maxW: "w-full", maxH: "h-[90vh] max-h-[1024px]" },
-    { key: "tablet", icon: Tablet, label: "Tablet", maxW: "max-w-[768px]", maxH: "h-[85vh] max-h-[1024px]" },
-    { key: "mobile", icon: Smartphone, label: "Mobile", maxW: "max-w-[375px]", maxH: "h-[85vh] max-h-[812px]" },
+    { key: "desktop", icon: Laptop, label: "Desktop", maxW: "w-full", maxH: "h-[90vh]" },
+    { key: "tablet", icon: Tablet, label: "Tablet", maxW: "max-w-[768px]", maxH: "h-[90vh]" },
+    { key: "mobile", icon: Smartphone, label: "Mobile", maxW: "max-w-[375px]", maxH: "h-[90vh]" },
   ];
 
 export function Sandpack({ active, files }: { active: "code" | "preview"; files: Record<string, string> | Record<string, { code: string }> }) {
@@ -60,7 +60,7 @@ export function Sandpack({ active, files }: { active: "code" | "preview"; files:
       <ResizableHandle />
       <ResizablePanel defaultSize={80}>
         <div className="h-full relative">
-          <ScrollArea className="h-full">
+          <ScrollArea className="h-[90vh]">
             <SandpackCodeEditor
               showLineNumbers
               wrapContent
@@ -74,7 +74,7 @@ export function Sandpack({ active, files }: { active: "code" | "preview"; files:
 
   return (
     <motion.div
-      className={`flex flex-col h-[100vh]`}
+      className="flex flex-col h-full"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1, transition: { duration: 0.4 } }}
     >
@@ -150,7 +150,6 @@ export function Sandpack({ active, files }: { active: "code" | "preview"; files:
         }}
       >
         <SandpackLayout className="flex-1 flex overflow-hidden">
-          {/* Code panel */}
           <motion.div
             key="code"
             initial={{ opacity: 0 }}
@@ -161,15 +160,14 @@ export function Sandpack({ active, files }: { active: "code" | "preview"; files:
             {panelContainer}
           </motion.div>
 
-          {/* Preview panel */}
           <motion.div
             key="preview"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className={`${active === "preview" ? "flex-1 flex flex-col h-full" : "hidden"}`}
+            className={`${active === "preview" ? "flex-1 flex flex-col" : "hidden"}`}
           >
-            <div className="flex-1 w-full h-full flex items-center justify-center bg-gray-50/50 dark:bg-gray-900/50 p-4 overflow-hidden">
+            <div className="flex-1 w-full flex items-center justify-center bg-gray-50/50 dark:bg-gray-900/50 p-6">
               <div
                 className={`${currentView.maxW} ${currentView.maxH} w-full transition-all duration-300 
                     bg-white dark:bg-gray-950 rounded-lg shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-800 flex flex-col`}
