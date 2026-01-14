@@ -1,4 +1,3 @@
-import { config } from "dotenv";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { convertToModelMessages, streamText } from 'ai';
@@ -6,7 +5,6 @@ import { CHAT_PROMPT } from "@/app/AiPage/prompt";
 import { groq } from '@ai-sdk/groq'
 import { inngest } from "@/app/src/inngest/client";
 
-config();
 
 
 export async function POST(req: NextRequest) {

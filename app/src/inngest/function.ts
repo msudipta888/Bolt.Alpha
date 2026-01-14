@@ -1,5 +1,4 @@
 import { inngest } from "./client";
-import "dotenv/config";
 import { prismaClient } from "@/app/api/prismaClient/Prisma";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { CODE_GEN_PROMPT } from "@/app/AiPage/prompt";

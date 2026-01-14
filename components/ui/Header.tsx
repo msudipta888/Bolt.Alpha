@@ -10,8 +10,7 @@ import { SignedIn, SignedOut, SignUpButton, UserButton } from '@clerk/nextjs';
 
 const navItems = [
   { name: 'Features', href: '/#features' },
-  { name: 'Solutions', href: '/#solutions' },
-  { name: 'Pricing', href: '/#pricing' },
+  { name: 'Solutions', href: '/#solutions' }
 ];
 
 export const Header = () => {
@@ -43,12 +42,11 @@ export const Header = () => {
           transition={{ duration: 0.5 }}
         >
           <Link href="/">
-            <span className="text-gradient-primary neon-glow-cyan animate-glow  text-3xl">bolt</span>
+            <span className="text-gradient-primary neon-glow-cyan animate-glow  text-3xl">Bolt</span>
             <span className="text-white text-2xl">.alpha</span>
           </Link>
         </motion.div>
 
-        {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-8">
           <motion.ul
             className="flex space-x-8"
@@ -121,7 +119,6 @@ export const Header = () => {
           </motion.div>
         </nav>
 
-        {/* Mobile Menu Button */}
         <button
           className="md:hidden text-white focus:outline-none"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -130,7 +127,6 @@ export const Header = () => {
         </button>
       </div>
 
-      {/* Mobile Navigation */}
       {mobileMenuOpen && (
         <motion.div
           className="md:hidden absolute top-[72px] left-0 right-0  backdrop-blur-lg  border-white/10 shadow-lg py-4"

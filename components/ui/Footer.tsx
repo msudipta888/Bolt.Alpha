@@ -7,7 +7,6 @@ const footerLinks = [
     title: 'Product',
     links: [
       { name: 'Features', href: '#' },
-      { name: 'Pricing', href: '#' },
       { name: 'Roadmap', href: '#' },
     ],
   },
@@ -47,11 +46,11 @@ export const Footer = () => {
                 <span className="text-gradient-primary neon-glow animate-glow">bolt</span>
                 <span className="text-white">.alpha</span>
               </div>
-              
+
               <p className="text-white/70 mb-6 max-w-md">
                 The next generation platform for building and deploying modern web applications. Fast, secure, and scalable.
               </p>
-              
+
               <div className="flex space-x-4">
                 <a href="#" className="text-white/70 hover:text-primary transition-colors">
                   <GithubIcon size={20} />
@@ -68,7 +67,7 @@ export const Footer = () => {
               </div>
             </motion.div>
           </div>
-          
+
           {footerLinks.map((column, i) => (
             <motion.div
               key={i}
@@ -90,12 +89,12 @@ export const Footer = () => {
             </motion.div>
           ))}
         </div>
-        
+
         <div className="mt-16 pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center">
           <p className="text-white/50 mb-4 md:mb-0">
             &copy; {new Date().getFullYear()} bolt.alpha. All rights reserved.
           </p>
-          
+
           <div className="flex space-x-6">
             <a href="#" className="text-white/50 hover:text-gradient transition-colors text-sm">
               Privacy Policy
