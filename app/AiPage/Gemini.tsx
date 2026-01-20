@@ -2,13 +2,12 @@
 import React, { useState, useContext } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { Typewriter } from "react-simple-typewriter";
-import { Send, Loader, Zap, Sparkles, Rocket, Code2, Cpu, Layers } from "lucide-react";
+import { Send, Loader, Zap, Sparkles, Code2, Cpu, Layers } from "lucide-react";
 import { MessageContext } from "../context/MessageContext";
 import { useRouter } from "next/navigation";
 import galaxyBg from "../../public/assests/earth.jpg";
 import Image from "next/image";
 const ChatInterface = () => {
-  // State management
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [sessionId] = useState(() => uuidv4());
@@ -20,19 +19,7 @@ const ChatInterface = () => {
   }
   const { setMes } = messageContext;
 
-  let navigate;
-  try {
-    navigate = useRouter();
-  } catch (err) {
-    console.error("Navigation error:", err);
-    return (
-      <div className="text-red-500 p-4">
-        Error: useNavigate hook failed. Make sure this component is wrapped in a
-        Router.
-      </div>
-    );
-  }
-
+  const navigate = useRouter();
 
   const handleSubmit = (userInput: string) => {
     try {
@@ -48,14 +35,14 @@ const ChatInterface = () => {
 
       setInput("");
       navigate.push(`/chat/${sessionId}?new=true`);
-    } catch (error: any) {
-      console.error(error)
-      setError(error.message)
+    } catch (error: unknown) {
+      console.error(error);
+      setError(error instanceof Error ? error.message : String(error));
     }
   };
 
 
-  const handleKeyDown = (e: any) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(input);
@@ -92,7 +79,6 @@ const ChatInterface = () => {
       )}
 
       <div className="relative z-10 w-full max-w-6xl px-4 py-8">
-        {/* Header Section */}
         <div className="text-center mb-8 animate-in fade-in slide-in-from-top duration-700">
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-white/10 backdrop-blur-md border border-white/20 mb-6 shadow-2xl">
             <Sparkles className="w-10 h-10 text-white animate-pulse" />
@@ -104,7 +90,6 @@ const ChatInterface = () => {
             Powered by Gemini • Your Cosmic Code Companion
           </p>
 
-          {/* Animated Typewriter */}
           <div className="min-h-[40px] mb-8">
             <p className="text-2xl md:text-3xl font-medium text-white/90">
               <Typewriter
@@ -124,7 +109,6 @@ const ChatInterface = () => {
             </p>
           </div>
 
-          {/* Feature Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10 max-w-4xl mx-auto">
             {features.map((feature, idx) => (
               <div
@@ -139,7 +123,6 @@ const ChatInterface = () => {
           </div>
         </div>
 
-        {/* Main Input Card */}
         <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom duration-700">
           <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl shadow-[0_8px_32px_0_rgba(255,255,255,0.1)] overflow-hidden">
             <form
@@ -158,7 +141,6 @@ const ChatInterface = () => {
                   disabled={loading}
                 />
 
-                {/* Character Count & Submit Button */}
                 <div className="absolute bottom-6 right-6 flex items-center gap-4">
                   <div className="flex items-center gap-3 bg-black/20 backdrop-blur-sm px-4 py-2 rounded-full border border-white/10">
                     <span className={`text-sm font-medium ${input.length > 900 ? "text-red-300" : "text-white/60"}`}>
@@ -183,7 +165,6 @@ const ChatInterface = () => {
               </div>
             </form>
 
-            {/* Bottom Bar */}
             <div className="border-t border-white/10 bg-white/5 px-8 py-4 flex items-center justify-between">
               <div className="flex items-center gap-2 text-white/50 text-sm">
                 <Zap className="w-4 h-4 text-yellow-400" />
@@ -196,14 +177,12 @@ const ChatInterface = () => {
             </div>
           </div>
 
-          {/* Info Text */}
           <p className="text-center text-white/40 text-sm mt-6 font-light">
             Your conversation will begin once you submit your first message
           </p>
         </div>
       </div>
 
-      {/* Loading Toast */}
       {loading && (
         <div className="fixed bottom-8 right-8 z-50 animate-in slide-in-from-bottom duration-300">
           <div className="bg-gradient-to-r from-purple-600 to-blue-600 backdrop-blur-xl text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 border border-white/20">
