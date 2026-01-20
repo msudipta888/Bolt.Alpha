@@ -3,7 +3,7 @@ import axios from "axios";
 import { Loader, Zap } from "lucide-react";
 import { useState } from "react";
 
-export const VersionCard = ({ messageId, setFiles }: { messageId: string, setFiles: any }) => {
+export const VersionCard = ({ messageId, setFiles }: { messageId: string, setFiles: (files: Record<string, { code: string }>) => void }) => {
     const [loading, setLoading] = useState(false);
 
     const handleLoadVersion = async () => {

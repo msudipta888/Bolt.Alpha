@@ -3,6 +3,11 @@ import { auth } from "@clerk/nextjs/server";
 import { prismaClient } from "../../prismaClient/Prisma";
 import { getChatHistory, getLatestCodeFiles } from "@/app/redis/redis-type";
 
+interface items {
+    messageId: string,
+    userChat: string,
+    aiChat: string,
+}
 export async function GET(req: Request, { params }: { params: { sessionId: string } }) {
     try {
 
@@ -28,12 +33,12 @@ export async function GET(req: Request, { params }: { params: { sessionId: strin
         if (chatHistory && chatHistory.length > 0) {
             console.log("[CACHE_HIT] Returning from Redis cache");
 
-            const transformedHistory = chatHistory.map((item: any, index: number) => {
+            const transformedHistory = chatHistory.map((item: items, index: number) => {
                 const isLastMessage = index === chatHistory.length - 1;
 
                 let fileReader: { fullPath: string; content: string }[] = [];
                 if (isLastMessage && lastFiles && Array.isArray(lastFiles)) {
-                    fileReader = lastFiles.map((f: any) => ({
+                    fileReader = lastFiles.map((f) => ({
                         fullPath: f.path,
                         content: f.content
                     }));

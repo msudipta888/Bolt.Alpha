@@ -10,7 +10,7 @@ if (!redisUrl || !redisToken) {
         const hostname = new URL(redisUrl).hostname;
         console.log(`Initializing Redis client for host: ${hostname}`);
     } catch (e) {
-        console.error("REDIS ERROR: Invalid UPSTASH_REDIS_REST_URL format.");
+        console.error("REDIS ERROR: Invalid UPSTASH_REDIS_REST_URL format.", e);
     }
 }
 

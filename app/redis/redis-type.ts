@@ -9,6 +9,12 @@ interface TitleItem {
     title: string;
 }
 
+interface ChatHistoryItem {
+    messageId: string;
+    userChat: string;
+    aiChat: string;
+}
+
 const REDIS_TTL_SECONDS = 60 * 60 * 48;
 
 const storeChatHistory = async (sessionId: string, messageId: string, userContent: string, aiContent: string) => {
@@ -69,10 +75,10 @@ const getLatestCodeFiles = async (sessionId: string) => {
     }
 }
 
-const getChatHistory = async (sessionId: string) => {
+const getChatHistory = async (sessionId: string): Promise<ChatHistoryItem[] | null> => {
     try {
         const chatKey = `chat:${sessionId}`;
-        const history = await redis.zrange(chatKey, 0, -1);
+        const history = await redis.zrange(chatKey, 0, -1) as ChatHistoryItem[];
         if (history && history.length > 0) {
             return history;
         }

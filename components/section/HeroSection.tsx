@@ -7,7 +7,6 @@ import {
   Zap,
   Shield,
   Code2,
-  Rocket,
   Star,
 } from "lucide-react";
 import { GlowingButton } from "@/components/ui/GlowingButon";

@@ -40,9 +40,11 @@ export async function GET(req: Request, { params }: { params: { messageId: strin
         if (message.chat.userId !== userId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
         }
-        const reconstructedFiles: any = {};
+        const reconstructedFiles: Record<string, string> = {};
         message.fileReader.forEach((f) => {
-            reconstructedFiles[f.fullPath] = f.content;
+            if (f.content !== null) {
+                reconstructedFiles[f.fullPath] = f.content as string;
+            }
         });
 
         return NextResponse.json({ files: reconstructedFiles });

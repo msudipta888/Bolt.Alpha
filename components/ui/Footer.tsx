@@ -1,6 +1,6 @@
 
 import { motion } from 'framer-motion';
-import { Github, Twitter, Linkedin, Youtube, GithubIcon } from 'lucide-react';
+import { Twitter, Linkedin, Youtube, GithubIcon } from 'lucide-react';
 
 const footerLinks = [
   {

@@ -6,7 +6,6 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   SandpackProvider,
   SandpackLayout,
@@ -16,12 +15,12 @@ import {
 } from "@codesandbox/sandpack-react";
 import DeployAndDownload from "./DeployAndDownload";
 import { Button } from "@/components/ui/button";
-import { Laptop, Smartphone, Tablet, Menu, X, Sun, Moon } from "lucide-react";
+import { Laptop, Smartphone, Tablet, Menu, X, Sun, Moon, LucideIcon } from "lucide-react";
 
 
 const VIEW_MODES: {
   key: "desktop" | "tablet" | "mobile";
-  icon: React.ComponentType<any>;
+  icon: LucideIcon
   label: string;
   maxW: string;
   maxH: string;
@@ -60,13 +59,13 @@ export function Sandpack({ active, files }: { active: "code" | "preview"; files:
       <ResizableHandle />
       <ResizablePanel defaultSize={80}>
         <div className="h-full relative">
-          <ScrollArea className="h-[90vh]">
+          <div className="h-[90vh] overflow-auto">
             <SandpackCodeEditor
               showLineNumbers
               wrapContent
               style={{ height: "100vh", width: "100%", paddingRight: "10px", overflow: "hidden" }}
             />
-          </ScrollArea>
+          </div>
         </div>
       </ResizablePanel>
     </ResizablePanelGroup>

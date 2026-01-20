@@ -27,10 +27,10 @@ export async function POST(req: NextRequest) {
             messageId
         });
 
-    } catch (error: any) {
+    } catch (error) {
         console.error("AI Code queue error:", error);
         return NextResponse.json(
-            { error: error.message || "An error occurred" },
+            { error: error || "An error occurred" },
             { status: 500 }
         );
     }

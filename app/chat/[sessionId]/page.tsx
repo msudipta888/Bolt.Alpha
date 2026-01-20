@@ -1,10 +1,15 @@
 "use client";
 import React, { useContext, useEffect, useState, useRef } from "react";
 import axios from "axios";
-import { MessageContext } from "../../context/MessageContext";
+import { MessageContext, Message } from "../../context/MessageContext";
 import ReactMarkdown from "react-markdown";
-import { Sandpack } from "../../AiPage/Sandpack";
+import dynamic from "next/dynamic";
 import { v4 as uuidv4 } from "uuid";
+
+const Sandpack = dynamic(
+    () => import("../../AiPage/Sandpack").then((mod) => ({ default: mod.Sandpack })),
+    { ssr: false }
+);
 
 import { Active, ActiveContext } from "../../context/ActiveContext";
 import { file } from "../../AiPage/defaultFiles";
@@ -37,7 +42,7 @@ const Gemini = () => {
     }
     const { mes, setMes } = messageContext;
 
-    const [files, setFiles] = useState(file);
+    const [files, setFiles] = useState<Record<string, { code: string }>>(file);
     const [input, setInput] = useState("");
     const [loader, setLoader] = useState(false);
 
@@ -77,7 +82,7 @@ const Gemini = () => {
                 return updated;
             });
 
-            setMes((prev: any) => {
+            setMes((prev: Message[]) => {
                 const updated = [...prev];
                 if (updated.length > 0 && updated[updated.length - 1].role === 'user') {
                     updated.pop();
@@ -116,13 +121,13 @@ const Gemini = () => {
                 lastInputRef.current = "";
 
                 const textContent = response.message.parts
-                    .filter((part: any) => part.type === "text")
-                    .map((part: any) => part.text);
+                    .filter((part: { type: string; text?: string }) => part.type === "text")
+                    .map((part: { type: string; text?: string }) => part.text);
 
                 const responseText = textContent.join("\n");
 
                 if (responseText) {
-                    setMes((prev: any) => [
+                    setMes((prev: Message[]) => [
                         ...prev,
                         { role: "ai", content: [responseText] }
                     ]);
@@ -140,13 +145,13 @@ const Gemini = () => {
                 });
 
                 await generateCode(responseText);
-            } catch (error: any) {
+            } catch (error: unknown) {
                 console.error("Error processing AI response:", error);
-                setError(error.message);
+                setError(error instanceof Error ? error.message : "An error occurred");
                 toast.error("Processing Error", {
                     description: "Failed to process the AI response. Please try again.",
                 });
-                setMes((prev: any) => [
+                setMes((prev: Message[]) => [
                     ...prev,
                     { role: "ai", content: ["Sorry, I encountered an error."] }
                 ]);
@@ -160,12 +165,12 @@ const Gemini = () => {
             if (Array.isArray(parsed) && parsed.length > 0) {
                 const lastMsg = parsed[parsed.length - 1];
                 if (lastMsg.parts && Array.isArray(lastMsg.parts)) {
-                    return lastMsg.parts.find((p: any) => p.type === 'text')?.text || lastMsg.content || content;
+                    return lastMsg.parts.find((p: { type: string; text?: string }) => p.type === 'text')?.text || lastMsg.content || content;
                 }
                 return lastMsg.content || content;
             }
             return content;
-        } catch (e) {
+        } catch {
             return content;
         }
     };
@@ -181,17 +186,17 @@ const Gemini = () => {
             const chatData = response.data;
 
             if (chatData && chatData.message) {
-                const historicalMessages: any[] = [];
-                let lastFiles = null;
+                const historicalMessages: Array<{ id: string; role: "user" | "assistant"; content: string; parts: Array<{ type: "text"; text: string }> }> = [];
+                let lastFiles: Array<{ fullPath: string; content: { code: string } }> | null = null;
 
-                chatData.message.forEach((msg: any) => {
+                chatData.message.forEach((msg: { id: string; userChat?: Array<{ content: string }>; aiChat?: Array<{ content: string }>; fileReader?: Array<{ fullPath: string; content: { code: string } }> }) => {
                     if (msg.userChat && msg.userChat.length > 0) {
                         const parsedContent = parseContent(msg.userChat[0].content);
                         historicalMessages.push({
                             id: `${msg.id}-user`,
                             role: 'user',
                             content: parsedContent,
-                            parts: [{ type: 'text', text: parsedContent }]
+                            parts: [{ type: 'text' as const, text: parsedContent }]
                         });
                     }
                     if (msg.aiChat && msg.aiChat.length > 0) {
@@ -200,26 +205,25 @@ const Gemini = () => {
                             id: `${msg.id}-ai`,
                             role: 'assistant',
                             content: parsedContent,
-                            parts: [{ type: 'text', text: parsedContent }]
+                            parts: [{ type: 'text' as const, text: parsedContent }]
                         });
                     }
                     if (msg.fileReader && msg.fileReader.length > 0) {
                         lastFiles = msg.fileReader;
                     }
                 });
-
                 setMessages(historicalMessages);
 
                 if (lastFiles) {
-                    const reconstructedFiles: any = {};
-                    (lastFiles as any[]).forEach((f: any) => {
+                    const reconstructedFiles: Record<string, { code: string }> = {};
+                    (lastFiles as Array<{ fullPath: string; content: { code: string } }>).forEach((f: { fullPath: string; content: { code: string } }) => {
                         reconstructedFiles[f.fullPath] = f.content;
                     });
                     setFiles({ ...file, ...reconstructedFiles });
                 }
             }
-        } catch (error: any) {
-            if (error.name === 'CanceledError' || error.name === 'AbortError') {
+        } catch (error: unknown) {
+            if (error instanceof Error && (error.name === 'CanceledError' || error.name === 'AbortError')) {
                 console.log('History fetch cancelled:', error);
             } else {
                 console.error("Error fetching chat history:", error);
@@ -245,12 +249,9 @@ const Gemini = () => {
             hasGeneratedInitialCode.current = false;
             setRefreshTrigger(0);
 
-            const load = async () => {
-                await fetchHistory();
-            };
-            load();
+            fetchHistory();
         }
-    }, [sessionId, isTitleClick, isNewChat]);
+    }, [sessionId, isTitleClick, isNewChat, mes.length]);
     const generateCode = async (aiResponse?: string) => {
         try {
             setFileLoader(true);
@@ -272,10 +273,10 @@ const Gemini = () => {
                         const res = await axios.get(`/api/get-files/${messageIdRef.current}`);
                         if (res.data.files && Object.keys(res.data.files).length > 0) {
                             clearInterval(pollInterval);
-                            setFiles((prev: any) => ({ ...prev, ...res.data.files }));
+                            setFiles((prev) => ({ ...prev, ...res.data.files }));
                             setFileLoader(false);
                         }
-                    } catch (error) {
+                    } catch {
                     }
 
                     if (pollAttempts >= maxAttempts) {
@@ -286,14 +287,14 @@ const Gemini = () => {
                 }, 2000);
             } else if (response.data.data) {
                 const data = response.data.data;
-                setFiles((prev: any) => ({ ...prev, ...data.files }));
+                setFiles((prev) => ({ ...prev, ...data.files }));
                 setFileLoader(false);
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Error generating code with Gemini:", error);
             setFileLoader(false);
             toast.error("Code Generation Failed", {
-                description: error.message || "Failed to generate code. Please try again.",
+                description: error instanceof Error ? error.message : "Failed to generate code. Please try again.",
             });
         }
     };
@@ -315,7 +316,7 @@ const Gemini = () => {
                 id: messageId,
                 role: "user",
                 parts: [{
-                    type: "text",
+                    type: "text" as const,
                     text: lastMessage.content.join("\n")
                 }],
             },
@@ -328,10 +329,10 @@ const Gemini = () => {
 
             setInput("");
         }
-    }, [mes, sessionId, isNewChat]);
+    }, [mes, sessionId, isNewChat, messages.length, loader, sendMessage]);
 
-    const handleChange = (e: any) => setInput(e.target.value);
-    const handleKeyDown = (e: any) => {
+    const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => setInput(e.target.value);
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
             if (input.trim()) {
@@ -346,7 +347,7 @@ const Gemini = () => {
                 sendMessage({
                     id: messageId,
                     parts: [{
-                        type: "text",
+                        type: "text" as const,
                         text: input.trim()
                     }],
                 },
@@ -398,50 +399,52 @@ const Gemini = () => {
                                     messages.map((message) => (
                                         <div key={message.id} className="animate-fadeIn">
                                             {message.parts
-                                                .filter((part: any) => part.type === "text")
-                                                .map((part: any, partIndex: number) => (
-                                                    <div
-                                                        key={`${message.id}-${partIndex}`}
-                                                        className={`group relative p-4 rounded-xl mb-3 transition-all duration-300 hover:shadow-lg ${message.role === "user"
-                                                            ? "bg-gradient-to-br from-blue-600/20 to-blue-700/10 border border-blue-500/30 hover:border-blue-400/50"
-                                                            : "bg-gradient-to-br from-purple-600/20 to-purple-700/10 border border-purple-500/30 hover:border-purple-400/50"
-                                                            }`}
-                                                    >
-                                                        <div className="flex items-center mb-3">
-                                                            <div
-                                                                className={`w-7 h-7 rounded-lg flex items-center justify-center shadow-md ${message.role === "user"
-                                                                    ? "bg-gradient-to-br from-blue-500 to-blue-600"
-                                                                    : "bg-gradient-to-br from-purple-500 to-purple-600"
-                                                                    }`}
-                                                            >
-                                                                {message.role === "user" ? (
-                                                                    <User size={14} className="text-white" />
-                                                                ) : (
-                                                                    <Bot size={14} className="text-white" />
+                                                .filter((part) => part.type === "text")
+                                                .map((part, partIndex: number) => {
+                                                    return (
+                                                        <div
+                                                            key={`${message.id}-${partIndex}`}
+                                                            className={`group relative p-4 rounded-xl mb-3 transition-all duration-300 hover:shadow-lg ${message.role === "user"
+                                                                ? "bg-gradient-to-br from-blue-600/20 to-blue-700/10 border border-blue-500/30 hover:border-blue-400/50"
+                                                                : "bg-gradient-to-br from-purple-600/20 to-purple-700/10 border border-purple-500/30 hover:border-purple-400/50"
+                                                                }`}
+                                                        >
+                                                            <div className="flex items-center mb-3">
+                                                                <div
+                                                                    className={`w-7 h-7 rounded-lg flex items-center justify-center shadow-md ${message.role === "user"
+                                                                        ? "bg-gradient-to-br from-blue-500 to-blue-600"
+                                                                        : "bg-gradient-to-br from-purple-500 to-purple-600"
+                                                                        }`}
+                                                                >
+                                                                    {message.role === "user" ? (
+                                                                        <User size={14} className="text-white" />
+                                                                    ) : (
+                                                                        <Bot size={14} className="text-white" />
+                                                                    )}
+                                                                </div>
+                                                                <h3 className="font-semibold ml-2.5 text-sm text-white">
+                                                                    {message.role === "user" ? "You" : "Bolt.alpha"}
+                                                                </h3>
+                                                                <div className={`ml-auto text-xs px-2 py-0.5 rounded-full ${message.role === "user"
+                                                                    ? "bg-blue-500/20 text-blue-300"
+                                                                    : "bg-purple-500/20 text-purple-300"
+                                                                    }`}>
+                                                                    {message.role === "user" ? "User" : "AI"}
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="ml-9 text-slate-200 text-sm leading-relaxed prose prose-invert prose-sm max-w-none">
+                                                                <ReactMarkdown>{part.text}</ReactMarkdown>
+                                                                {message.role === "assistant" && (
+                                                                    <VersionCard
+                                                                        messageId={message.id}
+                                                                        setFiles={setFiles}
+                                                                    />
                                                                 )}
                                                             </div>
-                                                            <h3 className="font-semibold ml-2.5 text-sm text-white">
-                                                                {message.role === "user" ? "You" : "Bolt.alpha"}
-                                                            </h3>
-                                                            <div className={`ml-auto text-xs px-2 py-0.5 rounded-full ${message.role === "user"
-                                                                ? "bg-blue-500/20 text-blue-300"
-                                                                : "bg-purple-500/20 text-purple-300"
-                                                                }`}>
-                                                                {message.role === "user" ? "User" : "AI"}
-                                                            </div>
                                                         </div>
-
-                                                        <div className="ml-9 text-slate-200 text-sm leading-relaxed prose prose-invert prose-sm max-w-none">
-                                                            <ReactMarkdown>{part.text}</ReactMarkdown>
-                                                            {message.role === "assistant" && (
-                                                                <VersionCard
-                                                                    messageId={message.id}
-                                                                    setFiles={setFiles}
-                                                                />
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                ))}
+                                                    );
+                                                })}
                                         </div>
                                     ))
                                 ) : (
@@ -454,7 +457,7 @@ const Gemini = () => {
                                                 Welcome to Bolt
                                             </h3>
                                             <p className="text-slate-400 text-sm leading-relaxed">
-                                                Start by describing the application you want to build. I'll help you bring your ideas to life with code.
+                                                Start by describing the application you want to build. I&apos;ll help you bring your ideas to life with code.
                                             </p>
                                         </div>
                                     </div>
@@ -507,7 +510,7 @@ const Gemini = () => {
                                                     id: messageId,
                                                     role: "user",
                                                     parts: [{
-                                                        type: "text",
+                                                        type: "text" as const,
                                                         text: input.trim()
                                                     }]
                                                 },
@@ -693,7 +696,7 @@ const Gemini = () => {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 };
 

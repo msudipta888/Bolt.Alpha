@@ -3,8 +3,9 @@ export async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3, initial
     while (retries < maxRetries) {
         try {
             return await fn();
-        } catch (error: any) {
-            const isRateLimit = error?.status === 429 || error?.message?.includes("429") || error?.message?.includes("Too Many Requests");
+        } catch (error: unknown) {
+            const err = error as { status?: number; message?: string };
+            const isRateLimit = err?.status === 429 || err?.message?.includes("429") || err?.message?.includes("Too Many Requests");
             if (isRateLimit && retries < maxRetries - 1) {
                 const delay = initialDelay * Math.pow(2, retries);
                 console.log(`Rate limit hit, retrying in ${delay}ms... (Attempt ${retries + 1}/${maxRetries})`);
@@ -18,6 +19,7 @@ export async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3, initial
     throw new Error("Max retries exceeded");
 }
 
-export function getErrorStatus(error: any): number {
-    return error?.status || (error?.message?.includes("429") ? 429 : 500);
+export function getErrorStatus(error: unknown): number {
+    const err = error as { status?: number; message?: string };
+    return err?.status || (err?.message?.includes("429") ? 429 : 500);
 }

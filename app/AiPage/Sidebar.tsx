@@ -6,6 +6,7 @@ import { file } from './defaultFiles'
 import axios from 'axios'
 import { useRouter } from "next/navigation";
 import { SignedIn, UserButton } from '@clerk/nextjs'
+import { Message } from '../context/MessageContext'
 
 interface Chat {
   id: string;
@@ -14,9 +15,9 @@ interface Chat {
 }
 
 interface SidebarProps {
-  setMes: (messages: any[]) => void;
+  setMes: (messages: Message[]) => void;
   refreshTrigger?: string | number;
-  setFiles: (files: any) => void;
+  setFiles: (files: Record<string, { code: string }>) => void;
   setInput: (input: string) => void;
   input: string;
   sessionId: string;
@@ -110,8 +111,8 @@ export default function Sidebar({
         } else {
           console.warn("generate-title returned no title", response?.data)
         }
-      } catch (err: any) {
-        console.error("Error generating title:", err?.response?.data || err?.message || err)
+      } catch (err) {
+        console.error("Error generating title:", err)
       } finally {
         isGeneratingRef.current = false
       }

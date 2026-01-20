@@ -26,7 +26,7 @@ let genAI = new GoogleGenerativeAI(getCurrentKey());
 async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
     try {
         return await fn();
-    } catch (err: any) {
+    } catch (err: unknown) {
         if (err instanceof Error && /429|5\d{2}/.test(err.message)) {
             rotateKey();
             genAI = new GoogleGenerativeAI(getCurrentKey());
@@ -48,7 +48,7 @@ const sanitizeJsonText = (text: string): string => {
         return text;
     } catch {
 
-        let cleaned = text.replace(/^```json\s*\n?/i, '').replace(/\n?```\s*$/i, '');
+        const cleaned = text.replace(/^```json\s*\n?/i, '').replace(/\n?```\s*$/i, '');
         try {
             JSON.parse(cleaned);
             return cleaned;
@@ -159,7 +159,6 @@ const generateCodeInQueue = inngest.createFunction(
                 const sanitized = sanitizeJsonText(resultText);
                 const parsed = JSON.parse(sanitized);
 
-                // Validate the expected structure
                 if (!parsed.files || !parsed.generatedFiles) {
                     console.error('[parse-json] Missing required fields:', {
                         hasFiles: !!parsed.files,
@@ -198,11 +197,11 @@ const generateCodeInQueue = inngest.createFunction(
 
             Object.keys(defaultFiles).forEach(filePath => {
                 if (!files[filePath]) {
-                    files[filePath] = (defaultFiles as any)[filePath].code;
+                    files[filePath] = (defaultFiles as Record<string, { code: string }>)[filePath].code;
                 }
             });
 
-            const fileEntries = Object.entries(files as Record<string, any>);
+            const fileEntries = Object.entries(files as Record<string, string>);
             const fileDataArray = fileEntries.map(([filePath, fileData]) => {
                 const pathParts = filePath.split("/").filter(Boolean);
                 const fileName = pathParts[pathParts.length - 1] ?? "index";

@@ -1,37 +1,46 @@
 "use client"
 import * as React from "react"
-import * as Radix from "@radix-ui/react-scroll-area"
+import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area"
 import { cn } from "@/lib/utils"
 
-export interface ScrollAreaProps extends React.ComponentProps<typeof Radix.Root> {}
+const ScrollArea = React.forwardRef<
+  React.ElementRef<typeof ScrollAreaPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.Root>
+>(({ className, children, ...props }, ref) => (
+  <ScrollAreaPrimitive.Root
+    ref={ref}
+    className={cn("relative overflow-hidden", className)}
+    {...props}
+  >
+    <ScrollAreaPrimitive.Viewport className="h-full w-full rounded-[inherit]">
+      {children}
+    </ScrollAreaPrimitive.Viewport>
+    <ScrollBar />
+    <ScrollAreaPrimitive.Corner />
+  </ScrollAreaPrimitive.Root>
+))
+ScrollArea.displayName = ScrollAreaPrimitive.Root.displayName
 
-export function ScrollArea({ children, className, ...props }: ScrollAreaProps) {
-  return (
-    <Radix.Root
-      {...props}
-      className={cn("relative overflow-hidden", className)}
-    >
-      <Radix.Viewport className="w-full h-full">
-        {children}
-      </Radix.Viewport>
+const ScrollBar = React.forwardRef<
+  React.ElementRef<typeof ScrollAreaPrimitive.ScrollAreaScrollbar>,
+  React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.ScrollAreaScrollbar>
+>(({ className, orientation = "vertical", ...props }, ref) => (
+  <ScrollAreaPrimitive.ScrollAreaScrollbar
+    ref={ref}
+    orientation={orientation}
+    className={cn(
+      "flex touch-none select-none transition-colors",
+      orientation === "vertical" &&
+      "h-full w-2.5 border-l border-l-transparent p-[1px]",
+      orientation === "horizontal" &&
+      "h-2.5 flex-col border-t border-t-transparent p-[1px]",
+      className
+    )}
+    {...props}
+  >
+    <ScrollAreaPrimitive.ScrollAreaThumb className="relative flex-1 rounded-full bg-slate-600 hover:bg-slate-500" />
+  </ScrollAreaPrimitive.ScrollAreaScrollbar>
+))
+ScrollBar.displayName = ScrollAreaPrimitive.ScrollAreaScrollbar.displayName
 
-      {/* vertical scrollbar */}
-      <Radix.Scrollbar
-        orientation="vertical"
-        className="flex h-full w-2 p-px bg-transparent hover:bg-gray-200"
-      >
-        <Radix.Thumb className="flex-1 bg-gray-400 rounded-full" />
-      </Radix.Scrollbar>
-
-      {/* horizontal scrollbar (optional) */}
-      <Radix.Scrollbar
-        orientation="horizontal"
-        className="flex w-full h-2 p-px bg-transparent hover:bg-gray-200"
-      >
-        <Radix.Thumb className="flex-1 bg-gray-400 rounded-full" />
-      </Radix.Scrollbar>
-
-      <Radix.Corner />
-    </Radix.Root>
-  )
-}
+export { ScrollArea, ScrollBar }

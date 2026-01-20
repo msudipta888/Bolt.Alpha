@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
 
     const lastMessage = messages[messages.length - 1];
     const messageId = lastMessage.id;
-    const userMessageText = lastMessage.parts?.find((p: any) => p.type === "text")?.text || lastMessage.content || "";
+    const userMessageText = lastMessage.parts?.find((p: { type: string; text?: string }) => p.type === "text")?.text || lastMessage.content || "";
     if (!sessionId) throw new Error("SessionId is missing");
     if (!messages) throw new Error("messages is missing");
     if (!messageId) throw new Error("messageId is missing");
@@ -64,24 +64,25 @@ export async function POST(req: NextRequest) {
     });
 
     return chatsession.toUIMessageStreamResponse();
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("AI Chat API error:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
 
-    if (error.message?.includes("SessionId is missing")) {
+    if (errorMessage.includes("SessionId is missing")) {
       return NextResponse.json(
         { error: "Session ID is missing. Please refresh the page." },
         { status: 400 }
       );
     }
 
-    if (error.message?.includes("messageId is missing")) {
+    if (errorMessage.includes("messageId is missing")) {
       return NextResponse.json(
         { error: "Message ID is missing. Please try again." },
         { status: 400 }
       );
     }
 
-    if (error.message?.includes("User ID is null or undefined")) {
+    if (errorMessage.includes("User ID is null or undefined")) {
       return NextResponse.json(
         { error: "Authentication failed. Please sign in again." },
         { status: 401 }
@@ -90,11 +91,8 @@ export async function POST(req: NextRequest) {
 
 
     return NextResponse.json(
-      { error: error.message || "An unknown error occurred. Please try again." },
+      { error: errorMessage || "An unknown error occurred. Please try again." },
       { status: 500 }
     );
   }
 }
-
-
-
