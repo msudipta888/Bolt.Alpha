@@ -4,6 +4,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { CODE_GEN_PROMPT } from "@/app/AiPage/prompt";
 import { file as defaultFiles } from "@/app/AiPage/defaultFiles";
 import { setAllTitle, storeChatHistory, storeCodeFiles, storeFiles } from "@/app/redis/redis-type";
+import { jsonrepair } from "jsonrepair";
 
 const apiKeys = [
     process.env.GOOGLE_GENERATIVE_AI_API_KEY!,
@@ -46,29 +47,41 @@ const sanitizeJsonText = (text: string): string => {
     if (!text) return "{}";
 
     let cleaned = text.trim();
+
     const firstBrace = cleaned.indexOf('{');
     const lastBrace = cleaned.lastIndexOf('}');
     if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
         cleaned = cleaned.substring(firstBrace, lastBrace + 1);
     }
+
     cleaned = cleaned.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
-    cleaned = cleaned.replace(/\\([^"\\\/bfnrtu])/g, '\\\\$1');
-    cleaned = cleaned.replace(/([^\\])"([\s\S]*?)"/g, (match, p1, p2) => {
-        const fixedContent = p2.replace(/\n/g, "\\n").replace(/\r/g, "\\r").replace(/\t/g, "\\t");
-        return p1 + '"' + fixedContent + '"';
-    });
 
     try {
         JSON.parse(cleaned);
         return cleaned;
     } catch {
-        const finalTry = cleaned.replace(/[\u0000-\u001F\u007F-\u009F]/g, "");
         try {
-            JSON.parse(finalTry);
-            return finalTry;
+            const repaired = jsonrepair(cleaned);
+            JSON.parse(repaired);
+            return repaired;
         } catch (e) {
-            console.warn('[sanitizeJsonText] All sanitization attempts failed');
-            return cleaned;
+            console.warn('[sanitizeJsonText] jsonrepair failed, attempting aggressive cleanup');
+
+            let aggressive = cleaned
+                .replace(/\\([^"\\\/bfnrtu])/g, '\\\\$1')
+                .replace(/([^\\])"([\s\S]*?)"/g, (match, p1, p2) => {
+                    const fixedContent = p2.replace(/\n/g, "\\n").replace(/\r/g, "\\r").replace(/\t/g, "\\t");
+                    return p1 + '"' + fixedContent + '"';
+                });
+
+            try {
+                const finalRepaired = jsonrepair(aggressive);
+                JSON.parse(finalRepaired);
+                return finalRepaired;
+            } catch {
+                console.error('[sanitizeJsonText] All parsing and repair attempts failed');
+                return cleaned;
+            }
         }
     }
 };
