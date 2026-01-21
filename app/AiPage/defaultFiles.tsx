@@ -202,7 +202,7 @@ export const GradientText = ({ children, className }) => (
       "lucide-react": "^0.482.0",
       "tailwindcss": "^3.4.1",
       "autoprefixer": "^10.0.0",
-      "uuid4": "^2.0.3",
+      "uuid": "^11.1.0",
       "tailwind-merge": "^2.4.0",
       "tailwindcss-animate": "^1.0.7",
       "@google/generative-ai": "^0.21.0",
