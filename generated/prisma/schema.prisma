@@ -1,6 +1,7 @@
 generator client {
-  provider = "prisma-client-js"
-  output   = "../generated/prisma"
+  provider      = "prisma-client-js"
+  output        = "../generated/prisma"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
@@ -27,6 +28,7 @@ model Chat {
   createdAt DateTime  @default(now())
 
   @@index([userId])
+  @@index([id])
 }
 
 model Message {
@@ -38,6 +40,7 @@ model Message {
   fileReader  FileReader[]
   createdTime DateTime     @default(now())
 
+  @@index([chatId])
   @@index([id, createdTime])
 }
 
@@ -46,6 +49,8 @@ model UserChat {
   userChatId String
   message    Message @relation(fields: [userChatId], references: [id], onDelete: Cascade)
   content    String
+
+  @@index([userChatId])
 }
 
 model AiChat {
@@ -53,6 +58,8 @@ model AiChat {
   AiChatId String
   message  Message @relation(fields: [AiChatId], references: [id], onDelete: Cascade)
   content  String
+
+  @@index([AiChatId])
 }
 
 model FileReader {
