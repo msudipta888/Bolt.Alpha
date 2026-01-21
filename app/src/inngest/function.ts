@@ -43,28 +43,31 @@ const chunk = <T,>(arr: T[], size = 50): T[][] => {
 };
 
 const sanitizeJsonText = (text: string): string => {
-    // 1. Remove obvious markdown wrappers
-    let cleaned = text.trim();
-    if (cleaned.startsWith('```')) {
-        cleaned = cleaned.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '');
-    }
+    if (!text) return "{}";
 
-    // 2. Remove control characters that might break JSON.parse
-    cleaned = cleaned.replace(/[\u0000-\u001F\u007F-\u009F]/g, "");
+    let cleaned = text.trim();
+    const firstBrace = cleaned.indexOf('{');
+    const lastBrace = cleaned.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+        cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+    }
+    cleaned = cleaned.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
+    cleaned = cleaned.replace(/\\([^"\\\/bfnrtu])/g, '\\\\$1');
+    cleaned = cleaned.replace(/([^\\])"([\s\S]*?)"/g, (match, p1, p2) => {
+        const fixedContent = p2.replace(/\n/g, "\\n").replace(/\r/g, "\\r").replace(/\t/g, "\\t");
+        return p1 + '"' + fixedContent + '"';
+    });
 
     try {
         JSON.parse(cleaned);
         return cleaned;
     } catch {
-        // 3. Attempt to fix common issues like trailing commas before closing braces/brackets
+        const finalTry = cleaned.replace(/[\u0000-\u001F\u007F-\u009F]/g, "");
         try {
-            const fixedTrailingCommas = cleaned
-                .replace(/,\s*([\]}])/g, '$1') // Remove trailing commas
-                .replace(/(\w+)\s*:/g, '"$1":'); // Ensure keys are quoted if they aren't
-            JSON.parse(fixedTrailingCommas);
-            return fixedTrailingCommas;
-        } catch {
-            console.warn('[sanitizeJsonText] Advanced sanitization failed');
+            JSON.parse(finalTry);
+            return finalTry;
+        } catch (e) {
+            console.warn('[sanitizeJsonText] All sanitization attempts failed');
             return cleaned;
         }
     }
@@ -155,7 +158,16 @@ const generateCodeInQueue = inngest.createFunction(
                 const projectContext = JSON.stringify(defaultFiles, null, 2);
 
                 const result = await model.generateContent({
-                    systemInstruction: `${CODE_GEN_PROMPT}\n\nIMPORTANT: You must return ONLY valid JSON. Avoid large blocks of repetitive code if possible to stay within token limits.\n\nCURRENT PROJECT CONTEXT (DEFAULT FILES):\n${projectContext}`,
+                    systemInstruction: `${CODE_GEN_PROMPT}
+
+CRITICAL RULES FOR JSON:
+1. Every backslash in code content MUST be escaped: use \\\\ instead of \\.
+2. Every newline in code content MUST be escaped as \\n. 
+3. DO NOT use template literals with backticks unless you escape the backticks if needed, though usually, as long as it's a JSON string, only " and \\ are the problem.
+4. Ensure the JSON is complete and valid. 
+
+CURRENT PROJECT CONTEXT (DEFAULT FILES):
+${projectContext}`,
                     contents: [{ role: "user", parts: [{ text: `User Request: ${prompt}` }] }]
                 });
                 const text = result.response?.candidates?.[0]?.content?.parts?.[0]?.text;
