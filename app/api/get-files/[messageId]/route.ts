@@ -3,7 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { prismaClient } from "../../prismaClient/Prisma";
 import { getFiles } from "@/app/redis/redis-type";
 
-export async function GET(req: Request, { params }: { params: { messageId: string } }) {
+export async function GET(req: Request, { params }: { params: Promise<{ messageId: string }> }) {
     try {
         const { userId } = await auth();
         const { messageId } = await params;
