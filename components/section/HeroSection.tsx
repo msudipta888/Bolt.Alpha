@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
 import {
   ArrowRight,
   Sparkles,
@@ -19,12 +20,28 @@ export const HeroSection = () => {
     { icon: Code2, text: "Modern Stack" },
   ];
 
+  const [mounted, setMounted] = useState(false);
+  const [stars, setStars] = useState<{ left: string; top: string; duration: number; delay: number }[]>([]);
+
+  useEffect(() => {
+    setMounted(true);
+    const generatedStars = [...Array(20)].map(() => ({
+      left: `${Math.random() * 100}%`,
+      top: `${Math.random() * 100}%`,
+      duration: 3 + Math.random() * 2,
+      delay: Math.random() * 5,
+    }));
+    setStars(generatedStars);
+  }, []);
+
   const stats = [
     { value: "10k+", label: "Active Users" },
     { value: "99.9%", label: "Uptime" },
     { value: "50ms", label: "Response Time" },
   ];
-  const router = useRouter()
+  const router = useRouter();
+
+  if (!mounted) return null;
   return (
     <section className="min-h-screen relative overflow-hidden bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900">
       <div className="absolute inset-0 overflow-hidden">
@@ -76,22 +93,22 @@ export const HeroSection = () => {
           }}
         />
 
-        {[...Array(20)].map((_, i) => (
+        {stars.map((star, i) => (
           <motion.div
             key={i}
             className="absolute w-1 h-1 bg-white/40 rounded-full"
             style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
+              left: star.left,
+              top: star.top,
             }}
             animate={{
               y: [0, -30, 0],
               opacity: [0, 1, 0],
             }}
             transition={{
-              duration: 3 + Math.random() * 2,
+              duration: star.duration,
               repeat: Infinity,
-              delay: Math.random() * 5,
+              delay: star.delay,
             }}
           />
         ))}
