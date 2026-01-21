@@ -43,18 +43,29 @@ const chunk = <T,>(arr: T[], size = 50): T[][] => {
 };
 
 const sanitizeJsonText = (text: string): string => {
-    try {
-        JSON.parse(text);
-        return text;
-    } catch {
+    // 1. Remove obvious markdown wrappers
+    let cleaned = text.trim();
+    if (cleaned.startsWith('```')) {
+        cleaned = cleaned.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '');
+    }
 
-        const cleaned = text.replace(/^```json\s*\n?/i, '').replace(/\n?```\s*$/i, '');
+    // 2. Remove control characters that might break JSON.parse
+    cleaned = cleaned.replace(/[\u0000-\u001F\u007F-\u009F]/g, "");
+
+    try {
+        JSON.parse(cleaned);
+        return cleaned;
+    } catch {
+        // 3. Attempt to fix common issues like trailing commas before closing braces/brackets
         try {
-            JSON.parse(cleaned);
-            return cleaned;
+            const fixedTrailingCommas = cleaned
+                .replace(/,\s*([\]}])/g, '$1') // Remove trailing commas
+                .replace(/(\w+)\s*:/g, '"$1":'); // Ensure keys are quoted if they aren't
+            JSON.parse(fixedTrailingCommas);
+            return fixedTrailingCommas;
         } catch {
-            console.warn('[sanitizeJsonText] Unable to sanitize JSON automatically');
-            return text;
+            console.warn('[sanitizeJsonText] Advanced sanitization failed');
+            return cleaned;
         }
     }
 };
@@ -135,13 +146,16 @@ const generateCodeInQueue = inngest.createFunction(
             return await withRetry(async () => {
                 const model = genAI.getGenerativeModel({
                     model: "gemini-2.5-flash",
-                    generationConfig: { responseMimeType: "application/json" }
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        temperature: 0.1
+                    }
                 });
 
                 const projectContext = JSON.stringify(defaultFiles, null, 2);
 
                 const result = await model.generateContent({
-                    systemInstruction: `${CODE_GEN_PROMPT}\n\nCURRENT PROJECT CONTEXT (DEFAULT FILES):\n${projectContext}`,
+                    systemInstruction: `${CODE_GEN_PROMPT}\n\nIMPORTANT: You must return ONLY valid JSON. Avoid large blocks of repetitive code if possible to stay within token limits.\n\nCURRENT PROJECT CONTEXT (DEFAULT FILES):\n${projectContext}`,
                     contents: [{ role: "user", parts: [{ text: `User Request: ${prompt}` }] }]
                 });
                 const text = result.response?.candidates?.[0]?.content?.parts?.[0]?.text;
