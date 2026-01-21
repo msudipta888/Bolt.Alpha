@@ -8,7 +8,7 @@ interface items {
     userChat: string,
     aiChat: string,
 }
-export async function GET(req: Request, { params }: { params: { sessionId: string } }) {
+export async function GET(req: Request, { params }: { params: Promise<{ sessionId: string }> }) {
     try {
 
         const { userId } = await auth();
